@@ -36,8 +36,8 @@ This avoids:
 The Image, Gallery, and Carousel blocks have limitations:
 
 - No proper control over the *lightbox* background (color and related parameters)  
-- The Carousel block does not provide a natural slide progression within the same overlay  
-- The Gallery block does support this behavior natively  
+- The Carousel block does not provide a natural slide progression within the same overlay for images included in the carousel block  
+- The Gallery block does support this behavior natively
 
 👉 We implemented a custom solution to unify behavior and improve visual control.
 
@@ -47,8 +47,8 @@ The Image, Gallery, and Carousel blocks have limitations:
 
 Gutenberg currently does not allow:
 
-- Assigning a different font to a word within a paragraph  
-- Adding inline images  
+- Assigning a different font to a text chunk within a paragraph  
+- Adding inline images respecting WP block structure
 
 This may seem minor, but becomes critical in cases like:
 
