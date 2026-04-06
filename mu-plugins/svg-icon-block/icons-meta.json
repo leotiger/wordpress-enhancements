@@ -1,0 +1,704 @@
+{
+  "address-card": [
+    "address",
+    "card"
+  ],
+  "apple-whole": [
+    "apple",
+    "whole"
+  ],
+  "arrows-rotate": [
+    "arrows",
+    "rotate"
+  ],
+  "arrows-spin": [
+    "arrows",
+    "spin"
+  ],
+  "at": [
+    "at"
+  ],
+  "atom": [
+    "atom"
+  ],
+  "baby": [
+    "baby"
+  ],
+  "bag-shopping": [
+    "bag",
+    "shopping"
+  ],
+  "ban": [
+    "ban"
+  ],
+  "bars": [
+    "bars"
+  ],
+  "bell": [
+    "bell"
+  ],
+  "binoculars": [
+    "binoculars"
+  ],
+  "bolt": [
+    "bolt"
+  ],
+  "bookmark": [
+    "bookmark"
+  ],
+  "bowl-food": [
+    "bowl",
+    "food"
+  ],
+  "bowl-rice": [
+    "bowl",
+    "rice"
+  ],
+  "brush": [
+    "brush"
+  ],
+  "bug": [
+    "bug"
+  ],
+  "bullhorn": [
+    "bullhorn"
+  ],
+  "bullseye": [
+    "bullseye"
+  ],
+  "bus-side": [
+    "bus",
+    "side"
+  ],
+  "camera": [
+    "camera"
+  ],
+  "car": [
+    "car"
+  ],
+  "car-rear": [
+    "car",
+    "rear"
+  ],
+  "car-side": [
+    "car",
+    "side"
+  ],
+  "carrot": [
+    "carrot"
+  ],
+  "cart-shopping": [
+    "cart",
+    "shopping"
+  ],
+  "cat": [
+    "cat"
+  ],
+  "cc-paypal": [
+    "cc",
+    "paypal"
+  ],
+  "certificate": [
+    "certificate"
+  ],
+  "chalkboard-user": [
+    "chalkboard",
+    "user"
+  ],
+  "chess-knight": [
+    "chess",
+    "knight"
+  ],
+  "chess-pawn": [
+    "chess",
+    "pawn"
+  ],
+  "chess-rook": [
+    "chess",
+    "rook"
+  ],
+  "child": [
+    "child"
+  ],
+  "circle": [
+    "circle"
+  ],
+  "circle-arrow-down": [
+    "circle",
+    "arrow",
+    "down"
+  ],
+  "circle-arrow-left": [
+    "circle",
+    "arrow",
+    "left"
+  ],
+  "circle-arrow-right": [
+    "circle",
+    "arrow",
+    "right"
+  ],
+  "circle-arrow-up": [
+    "circle",
+    "arrow",
+    "up"
+  ],
+  "circle-check": [
+    "circle",
+    "check"
+  ],
+  "circle-dot": [
+    "circle",
+    "dot"
+  ],
+  "circle-exclamation": [
+    "circle",
+    "exclamation"
+  ],
+  "circle-half-stroke": [
+    "circle",
+    "half",
+    "stroke"
+  ],
+  "circle-minus": [
+    "circle",
+    "minus"
+  ],
+  "circle-plus": [
+    "circle",
+    "plus"
+  ],
+  "circle-user": [
+    "circle",
+    "user"
+  ],
+  "circle-xmark": [
+    "circle",
+    "xmark"
+  ],
+  "clock": [
+    "clock"
+  ],
+  "cloud": [
+    "cloud"
+  ],
+  "code": [
+    "code"
+  ],
+  "comment": [
+    "comment"
+  ],
+  "compass": [
+    "compass"
+  ],
+  "compass-drafting": [
+    "compass",
+    "drafting"
+  ],
+  "credit-card": [
+    "credit",
+    "card"
+  ],
+  "crop-simple": [
+    "crop",
+    "simple"
+  ],
+  "crow": [
+    "crow"
+  ],
+  "crown": [
+    "crown"
+  ],
+  "cube": [
+    "cube"
+  ],
+  "dice": [
+    "dice"
+  ],
+  "dog": [
+    "dog"
+  ],
+  "door-closed": [
+    "door",
+    "closed"
+  ],
+  "door-open": [
+    "door",
+    "open"
+  ],
+  "dove": [
+    "dove"
+  ],
+  "droplet": [
+    "droplet"
+  ],
+  "earth-europe": [
+    "earth",
+    "europe"
+  ],
+  "envelope": [
+    "envelope"
+  ],
+  "eye": [
+    "eye"
+  ],
+  "eye-slash": [
+    "eye",
+    "slash"
+  ],
+  "face-smile": [
+    "face",
+    "smile"
+  ],
+  "fan": [
+    "fan"
+  ],
+  "faucet": [
+    "faucet"
+  ],
+  "faucet-drip": [
+    "faucet",
+    "drip"
+  ],
+  "feather-pointed": [
+    "feather",
+    "pointed"
+  ],
+  "film": [
+    "film"
+  ],
+  "filter": [
+    "filter"
+  ],
+  "fire": [
+    "fire"
+  ],
+  "flask": [
+    "flask"
+  ],
+  "frog": [
+    "frog"
+  ],
+  "gear": [
+    "gear"
+  ],
+  "globe": [
+    "globe"
+  ],
+  "guitar": [
+    "guitar"
+  ],
+  "hammer": [
+    "hammer"
+  ],
+  "hand": [
+    "hand"
+  ],
+  "hand-holding-droplet": [
+    "hand",
+    "holding",
+    "droplet"
+  ],
+  "hands-clapping": [
+    "hands",
+    "clapping"
+  ],
+  "handshake": [
+    "handshake"
+  ],
+  "headphones": [
+    "headphones"
+  ],
+  "hourglass": [
+    "hourglass"
+  ],
+  "hourglass-end": [
+    "hourglass",
+    "end"
+  ],
+  "hourglass-half": [
+    "hourglass",
+    "half"
+  ],
+  "hourglass-start": [
+    "hourglass",
+    "start"
+  ],
+  "house": [
+    "house"
+  ],
+  "house-chimney": [
+    "house",
+    "chimney"
+  ],
+  "house-chimney-user": [
+    "house",
+    "chimney",
+    "user"
+  ],
+  "house-chimney-window": [
+    "house",
+    "chimney",
+    "window"
+  ],
+  "house-laptop": [
+    "house",
+    "laptop"
+  ],
+  "house-signal": [
+    "house",
+    "signal"
+  ],
+  "ice-cream": [
+    "ice",
+    "cream"
+  ],
+  "image": [
+    "image"
+  ],
+  "infinity": [
+    "infinity"
+  ],
+  "key": [
+    "key"
+  ],
+  "keyboard": [
+    "keyboard"
+  ],
+  "landmark": [
+    "landmark"
+  ],
+  "language": [
+    "language"
+  ],
+  "laptop-mobile": [
+    "laptop",
+    "mobile"
+  ],
+  "leaf": [
+    "leaf"
+  ],
+  "lemon": [
+    "lemon"
+  ],
+  "life-ring": [
+    "life",
+    "ring"
+  ],
+  "lightbulb": [
+    "lightbulb"
+  ],
+  "link": [
+    "link"
+  ],
+  "location-crosshairs": [
+    "location",
+    "crosshairs"
+  ],
+  "location-dot": [
+    "location",
+    "dot"
+  ],
+  "lock": [
+    "lock"
+  ],
+  "lock-open": [
+    "lock",
+    "open"
+  ],
+  "magnet": [
+    "magnet"
+  ],
+  "magnifying-glass": [
+    "magnifying",
+    "glass"
+  ],
+  "magnifying-glass-location": [
+    "magnifying",
+    "glass",
+    "location"
+  ],
+  "magnifying-glass-plus": [
+    "magnifying",
+    "glass",
+    "plus"
+  ],
+  "map": [
+    "map"
+  ],
+  "map-location-dot": [
+    "map",
+    "location",
+    "dot"
+  ],
+  "marker": [
+    "marker"
+  ],
+  "martini-glass-citrus": [
+    "martini",
+    "glass",
+    "citrus"
+  ],
+  "maximize": [
+    "maximize"
+  ],
+  "microphone": [
+    "microphone"
+  ],
+  "microphone-lines": [
+    "microphone",
+    "lines"
+  ],
+  "minimize": [
+    "minimize"
+  ],
+  "mitten": [
+    "mitten"
+  ],
+  "moon": [
+    "moon"
+  ],
+  "mortar-pestle": [
+    "mortar",
+    "pestle"
+  ],
+  "motorcycle": [
+    "motorcycle"
+  ],
+  "mug-saucer": [
+    "mug",
+    "saucer"
+  ],
+  "music": [
+    "music"
+  ],
+  "palette": [
+    "palette"
+  ],
+  "paperclip": [
+    "paperclip"
+  ],
+  "pause": [
+    "pause"
+  ],
+  "paw": [
+    "paw"
+  ],
+  "pen-to-square": [
+    "pen",
+    "to",
+    "square"
+  ],
+  "pencil": [
+    "pencil"
+  ],
+  "pepper-hot": [
+    "pepper",
+    "hot"
+  ],
+  "person-biking": [
+    "person",
+    "biking"
+  ],
+  "person-hiking": [
+    "person",
+    "hiking"
+  ],
+  "person-walking": [
+    "person",
+    "walking"
+  ],
+  "phone": [
+    "phone"
+  ],
+  "photo-film": [
+    "photo",
+    "film"
+  ],
+  "play": [
+    "play"
+  ],
+  "plus-minus": [
+    "plus",
+    "minus"
+  ],
+  "puzzle-piece": [
+    "puzzle",
+    "piece"
+  ],
+  "receipt": [
+    "receipt"
+  ],
+  "rocket": [
+    "rocket"
+  ],
+  "rotate-right": [
+    "rotate",
+    "right"
+  ],
+  "sailboat": [
+    "sailboat"
+  ],
+  "scale-unbalanced": [
+    "scale",
+    "unbalanced"
+  ],
+  "scissors": [
+    "scissors"
+  ],
+  "scroll": [
+    "scroll"
+  ],
+  "seedling": [
+    "seedling"
+  ],
+  "shirt": [
+    "shirt"
+  ],
+  "shower": [
+    "shower"
+  ],
+  "signature": [
+    "signature"
+  ],
+  "signs-post": [
+    "signs",
+    "post"
+  ],
+  "skull-crossbones": [
+    "skull",
+    "crossbones"
+  ],
+  "sliders": [
+    "sliders"
+  ],
+  "spa": [
+    "spa"
+  ],
+  "splotch": [
+    "splotch"
+  ],
+  "spray-can": [
+    "spray",
+    "can"
+  ],
+  "square-check": [
+    "square",
+    "check"
+  ],
+  "square-xmark": [
+    "square",
+    "xmark"
+  ],
+  "staff-snake": [
+    "staff",
+    "snake"
+  ],
+  "star": [
+    "star"
+  ],
+  "star-half-stroke": [
+    "star",
+    "half",
+    "stroke"
+  ],
+  "star-of-life": [
+    "star",
+    "of",
+    "life"
+  ],
+  "street-view": [
+    "street",
+    "view"
+  ],
+  "stroopwafel": [
+    "stroopwafel"
+  ],
+  "sun": [
+    "sun"
+  ],
+  "tag": [
+    "tag"
+  ],
+  "tags": [
+    "tags"
+  ],
+  "thumbs-up": [
+    "thumbs",
+    "up"
+  ],
+  "thumbtack": [
+    "thumbtack"
+  ],
+  "toggle-off": [
+    "toggle",
+    "off"
+  ],
+  "toggle-on": [
+    "toggle",
+    "on"
+  ],
+  "train": [
+    "train"
+  ],
+  "trash": [
+    "trash"
+  ],
+  "trash-can": [
+    "trash",
+    "can"
+  ],
+  "truck": [
+    "truck"
+  ],
+  "truck-fast": [
+    "truck",
+    "fast"
+  ],
+  "truck-medical": [
+    "truck",
+    "medical"
+  ],
+  "user": [
+    "user"
+  ],
+  "user-astronaut": [
+    "user",
+    "astronaut"
+  ],
+  "user-nurse": [
+    "user",
+    "nurse"
+  ],
+  "utensils": [
+    "utensils"
+  ],
+  "van-shuttle": [
+    "van",
+    "shuttle"
+  ],
+  "virus": [
+    "virus"
+  ],
+  "water-ladder": [
+    "water",
+    "ladder"
+  ],
+  "wheat-awn": [
+    "wheat",
+    "awn"
+  ],
+  "wireless": [
+    "wireless"
+  ],
+  "wrench": [
+    "wrench"
+  ],
+  "xmark": [
+    "xmark"
+  ],
+  "yin-yang": [
+    "yin",
+    "yang"
+  ]
+}

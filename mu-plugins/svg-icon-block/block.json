@@ -1,0 +1,75 @@
+{
+  "apiVersion": 3,
+  "name": "custom/svg-icon",
+  "title": "SVG Icon Button",
+  "category": "design",
+  "icon": "format-image",
+  "description": "Icon button with optional label and link support.",
+  "attributes": {
+    "icon": {
+      "type": "string",
+      "default": ""
+    },
+    "label": {
+      "type": "string",
+      "default": ""
+    },
+    "size": {
+      "type": "number",
+      "default": 24
+    },
+    "color": {
+      "type": "string",
+      "default": ""
+    },
+    "rotation": {
+      "type": "number",
+      "default": 0
+    },
+	"justifyContent": {
+	  "type": "string",
+	  "default": "flex-start"
+	},
+	"alignItems": {
+	  "type": "string",
+	  "default": "center"
+	},		
+    "url": {
+      "type": "string",
+      "default": ""
+    },
+    "opensInNewTab": {
+      "type": "boolean",
+      "default": false
+    },
+	"variant": {
+	  "type": "string",
+	  "default": "primary"
+	},
+	"iconColor": {
+	  "type": "string",
+	  "default": ""
+	},
+	"textColor": {
+	  "type": "string",
+	  "default": ""
+	},		
+	"iconPosition": {
+	  "type": "string",
+	  "default": "left"
+	},
+	"flipH": {
+	  "type": "boolean",
+	  "default": false
+	},
+	"flipV": {
+	  "type": "boolean",
+	  "default": false
+	}		
+  },
+  "supports": {
+    "html": false
+  },
+  "editorScript": "sib-icon-block-editor",
+  "editorStyle": "file:./editor.css"
+}

@@ -1,0 +1,75 @@
+.loc-carousel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loc-carousel-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.loc-carousel-ui {
+  position: relative;
+  z-index: 2;
+}
+
+.loc-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  margin: auto;
+  cursor: zoom-out;
+}
+
+.loc-prev,
+.loc-next,
+.loc-close {
+  position: absolute;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index:3;
+}
+
+.loc-close {
+  top: 10px;
+  right: 20px;
+}
+
+.loc-carousel-overlay .loc-prev,
+.loc-carousel-overlay .loc-next {
+  cursor: pointer;
+}
+
+.loc-carousel-overlay .loc-img {
+  transition: transform 0.2s ease;
+}
+
+.loc-carousel-overlay .loc-img:hover {
+  transform: scale(0.98);
+}
+
+.loc-prev {
+  left: 10px;
+  top: 50%;
+}
+
+.loc-next {
+  right: 10px;
+  top: 50%;
+}
+
+/* hide controls on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .loc-prev,
+  .loc-next,
+  .loc-close {
+    display: none;
+  }
+}

@@ -1,0 +1,134 @@
+.wp-block-custom-svg-icon .sib-wrapper {
+  display: flex;
+  width: 100%;
+}
+
+/* ---------------- BUTTON BASE ---------------- */
+
+.sib-button {
+  display: inline-flex;
+  gap: 8px;
+  border-radius: 6px;
+  background: #007cba;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+/* padding variants */
+.sib-button.has-label {
+  padding: 10px 14px;
+}
+
+.sib-button.icon-only {
+  padding: 10px;
+}
+
+/* hover */
+.sib-button:hover {
+  background: #005a87;
+}
+
+/* Only apply when no inline fill exists */
+.sib-button svg:not([style*="fill"]) {
+  fill: currentColor;
+}
+
+/* label */
+.sib-label {
+  font-size: 14px;
+  line-height: 1;
+}
+
+
+/* ---------------- EMPTY STATE ---------------- */
+
+.sib-empty {
+  border: 1px dashed #ccc;
+  padding: 10px;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.sib-empty:hover {
+  background: #f0f0f0;
+}
+
+
+/* ---------------- POPOVER ---------------- */
+
+.sib-popover-inner {
+  width: 260px;
+  padding: 10px;
+}
+
+
+/* ---------------- GRID ---------------- */
+
+.sib-grid {
+  max-height: 250px;
+  overflow-y: auto;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 40px);
+  gap: 6px;
+
+  padding-top: 8px;
+}
+
+
+/* ---------------- ICON BUTTON ---------------- */
+
+.icon-button {
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 4px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-button svg {
+  display: block;
+}
+
+.icon-button:hover {
+  background: #eee;
+}
+
+/* ---------------- VARIANTS ---------------- */
+
+/* PRIMARY */
+.sib-button.sib-primary {
+  background: #007cba;
+  color: #fff;
+}
+
+.sib-button.sib-primary:hover {
+  background: #005a87;
+}
+
+/* OUTLINE */
+.sib-button.sib-outline {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: #007cba;
+}
+
+.sib-button.sib-outline:hover {
+  background: rgba(0, 124, 186, 0.1);
+}
+
+/* GHOST */
+.sib-button.sib-ghost {
+  background: transparent;
+  color: #007cba;
+}
+
+.sib-button.sib-ghost:hover {
+  background: rgba(0, 124, 186, 0.08);
+}

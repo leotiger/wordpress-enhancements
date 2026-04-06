@@ -1,0 +1,6 @@
+.wp-lightbox-overlay.loc-custom-overlay {
+  background: var(--loc-bg, rgba(0, 0, 0, 1));
+  backdrop-filter: blur(var(--loc-blur, 8px));
+  transition: all 0.3s ease;
+}
+

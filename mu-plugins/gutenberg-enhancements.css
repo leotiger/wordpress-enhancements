@@ -1,0 +1,16 @@
+.inline-image-wrapper:hover {
+    outline: 2px solid #007cba;
+}
+
+.inline-image-wrapper {
+    cursor: pointer;
+}
+
+.inline-image-wrapper.is-hovered {
+    outline: 2px dashed #999;
+}
+
+.inline-image-wrapper.is-selected {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}

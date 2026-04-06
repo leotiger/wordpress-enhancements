@@ -1,0 +1,80 @@
+{
+  "location-dot": { "en": ["location","pin","place"], "es": ["ubicacion","lugar"], "ca": ["ubicació","lloc"], "tags": ["map","gps"] },
+  "globe": { "en": ["globe","world","earth"], "es": ["mundo","tierra"], "ca": ["mon","terra"], "tags": ["global","internet"] },
+  "compass": { "en": ["compass","navigation"], "es": ["brujula"], "ca": ["brúixola"], "tags": ["direction"] },
+  "map-location-dot": { "en": ["map","location"], "es": ["mapa","ubicacion"], "ca": ["mapa","ubicació"], "tags": ["gps"] },
+  "earth-europe": { "en": ["europe","earth"], "es": ["europa"], "ca": ["europa"], "tags": ["map"] },
+
+  "utensils": { "en": ["food","restaurant"], "es": ["comida","restaurante"], "ca": ["menjar","restaurant"], "tags": ["eat"] },
+  "apple-whole": { "en": ["apple","fruit"], "es": ["manzana","fruta"], "ca": ["poma","fruita"], "tags": ["food"] },
+  "carrot": { "en": ["carrot","vegetable"], "es": ["zanahoria"], "ca": ["pastanaga"], "tags": ["food"] },
+  "bowl-food": { "en": ["food","meal"], "es": ["comida"], "ca": ["menjar"], "tags": ["dish"] },
+  "bowl-rice": { "en": ["rice","food"], "es": ["arroz"], "ca": ["arròs"], "tags": ["meal"] },
+
+  "house": { "en": ["house","home"], "es": ["casa","hogar"], "ca": ["casa","llar"], "tags": ["building"] },
+  "house-chimney": { "en": ["house"], "es": ["casa"], "ca": ["casa"], "tags": ["home"] },
+  "house-laptop": { "en": ["remote","work"], "es": ["trabajo","remoto"], "ca": ["treball","remot"], "tags": ["home"] },
+
+  "user": { "en": ["user","person"], "es": ["usuario","persona"], "ca": ["usuari","persona"], "tags": ["account"] },
+  "circle-user": { "en": ["user","profile"], "es": ["perfil"], "ca": ["perfil"], "tags": ["account"] },
+  "address-card": { "en": ["contact","card"], "es": ["contacto"], "ca": ["contacte"], "tags": ["profile"] },
+
+  "person-walking": { "en": ["walking"], "es": ["caminar"], "ca": ["caminar"], "tags": ["movement"] },
+  "person-biking": { "en": ["cycling"], "es": ["bicicleta"], "ca": ["bicicleta"], "tags": ["sport"] },
+  "person-hiking": { "en": ["hiking"], "es": ["senderismo"], "ca": ["senderisme"], "tags": ["outdoor"] },
+
+  "dog": { "en": ["dog","animal"], "es": ["perro"], "ca": ["gos"], "tags": ["pet"] },
+  "cat": { "en": ["cat","animal"], "es": ["gato"], "ca": ["gat"], "tags": ["pet"] },
+  "paw": { "en": ["paw","animal"], "es": ["huella"], "ca": ["petjada"], "tags": ["pet"] },
+
+  "car": { "en": ["car","vehicle"], "es": ["coche","vehiculo"], "ca": ["cotxe","vehicle"], "tags": ["transport"] },
+  "bus-side": { "en": ["bus"], "es": ["bus"], "ca": ["bus"], "tags": ["transport"] },
+  "train": { "en": ["train"], "es": ["tren"], "ca": ["tren"], "tags": ["transport"] },
+  "motorcycle": { "en": ["motorcycle"], "es": ["moto"], "ca": ["moto"], "tags": ["vehicle"] },
+
+  "camera": { "en": ["camera","photo"], "es": ["camara"], "ca": ["càmera"], "tags": ["media"] },
+  "image": { "en": ["image","photo"], "es": ["imagen"], "ca": ["imatge"], "tags": ["media"] },
+  "film": { "en": ["film","video"], "es": ["video"], "ca": ["video"], "tags": ["media"] },
+
+  "music": { "en": ["music","audio"], "es": ["musica"], "ca": ["musica"], "tags": ["sound"] },
+  "microphone": { "en": ["microphone"], "es": ["microfono"], "ca": ["micròfon"], "tags": ["audio"] },
+  "headphones": { "en": ["headphones"], "es": ["auriculares"], "ca": ["auriculars"], "tags": ["audio"] },
+
+  "sun": { "en": ["sun","day"], "es": ["sol"], "ca": ["sol"], "tags": ["weather"] },
+  "moon": { "en": ["moon","night"], "es": ["luna"], "ca": ["lluna"], "tags": ["weather"] },
+  "cloud": { "en": ["cloud"], "es": ["nube"], "ca": ["núvol"], "tags": ["weather"] },
+
+  "leaf": { "en": ["leaf","nature"], "es": ["hoja"], "ca": ["fulla"], "tags": ["eco"] },
+  "seedling": { "en": ["plant"], "es": ["planta"], "ca": ["planta"], "tags": ["nature"] },
+
+  "lock": { "en": ["lock","secure"], "es": ["cerradura"], "ca": ["pany"], "tags": ["security"] },
+  "lock-open": { "en": ["unlock"], "es": ["abrir"], "ca": ["obrir"], "tags": ["security"] },
+
+  "bell": { "en": ["bell","notification"], "es": ["campana"], "ca": ["campana"], "tags": ["alert"] },
+  "comment": { "en": ["comment","message"], "es": ["comentario"], "ca": ["comentari"], "tags": ["chat"] },
+
+  "gear": { "en": ["settings","gear"], "es": ["configuracion"], "ca": ["configuració"], "tags": ["system"] },
+  "sliders": { "en": ["controls"], "es": ["controles"], "ca": ["controls"], "tags": ["settings"] },
+
+  "trash": { "en": ["delete","trash"], "es": ["eliminar"], "ca": ["eliminar"], "tags": ["remove"] },
+  "xmark": { "en": ["close"], "es": ["cerrar"], "ca": ["tancar"], "tags": ["ui"] },
+  "circle-check": { "en": ["check","success"], "es": ["correcto"], "ca": ["correcte"], "tags": ["status"] },
+
+  "star": { "en": ["star","favorite"], "es": ["estrella"], "ca": ["estrella"], "tags": ["rating"] },
+  "bookmark": { "en": ["bookmark"], "es": ["marcador"], "ca": ["marcador"], "tags": ["save"] },
+
+  "clock": { "en": ["time","clock"], "es": ["tiempo"], "ca": ["temps"], "tags": ["schedule"] },
+  "hourglass": { "en": ["time"], "es": ["tiempo"], "ca": ["temps"], "tags": ["waiting"] },
+
+  "droplet": { "en": ["water","drop"], "es": ["agua"], "ca": ["aigua"], "tags": ["liquid"] },
+  "faucet": { "en": ["tap"], "es": ["grifo"], "ca": ["aixeta"], "tags": ["water"] },
+
+  "magnifying-glass": { "en": ["search"], "es": ["buscar"], "ca": ["cercar"], "tags": ["find"] },
+  "magnifying-glass-location": { "en": ["search location"], "es": ["buscar ubicacion"], "ca": ["cercar ubicació"], "tags": ["map"] },
+
+  "phone": { "en": ["phone"], "es": ["telefono"], "ca": ["telèfon"], "tags": ["contact"] },
+  "envelope": { "en": ["email"], "es": ["correo"], "ca": ["correu"], "tags": ["message"] },
+
+  "wifi": { "en": ["wifi","internet"], "es": ["wifi"], "ca": ["wifi"], "tags": ["network"] },
+  "laptop-mobile": { "en": ["devices"], "es": ["dispositivos"], "ca": ["dispositius"], "tags": ["tech"] }
+}
