@@ -90,7 +90,7 @@ But it is not enough.
 
 ## Distribution
 
-Everything is packaged in a compressed file.
+Fetch whatever you need from the sources. There's a lot of space for improvements or simply fetch the idea and do better.
 
 ---
 
