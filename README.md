@@ -88,6 +88,33 @@ But it is not enough.
 
 ---
 
+## Icons Without Overhead
+
+This may not seem critical, but we strongly dislike the overkill and overhead associated with icon systems like Font Awesome — especially CSS-based integration and unnecessary payload.
+
+We implemented a small module that allows loading a custom icon file. Icons can be extracted from Font Awesome (respecting licensing — attribution should remain within the SVG code).
+
+This approach provides:
+- lightweight icon usage  
+- full control over assets  
+- direct integration (icons can be used as links without additional wrappers)  
+
+---
+
+## Icon Build Process
+
+Preparing the icon set requires a small preprocessing step.
+
+We include a very simple Node.js script under Helpers with a current free FontAwesome verion:
+
+**`build-icons.js`**
+
+This script generates a usable icon set (e.g. from Font Awesome) for integration with the **SVG Icon Button block**.
+
+It is intentionally minimal and can be adapted as needed. You can extend the script to include other fonts or svg icons. The list of icons to include in your icons.svg is handled via the icons-list.json file.
+
+---
+
 ## Distribution
 
 Fetch whatever you need from the sources. There's a lot of space for improvements or simply fetch the idea and do better.
