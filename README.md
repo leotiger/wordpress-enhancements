@@ -1,6 +1,6 @@
 # WordPress Minimal Integration & Enhancements
 
-We are developing a WordPress integration based on minimal dependency on third-party plugins, to ensure control, security, and autonomy.
+We are developing a WordPress integration based on minimal dependency on third-party plugins, to ensure speed, control, security, and autonomy.
 
 Meanwhile, the WordPress ecosystem increasingly behaves like a business platform: basic plugins, limited functionality, and “professional” versions behind paywalls.
 
