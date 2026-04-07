@@ -193,7 +193,7 @@ This approach provides:
 
 Preparing the icon set requires a small preprocessing step.
 
-We include a very simple Node.js script under Helpers with a current free FontAwesome verion:
+We include a very simple Node.js script under Helpers with a current and free FontAwesome version:
 
 **`build-icons.js`**
 
