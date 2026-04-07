@@ -86,6 +86,93 @@ But it is not enough.
 - increase flexibility  
 - fix issues found in the current WordPress version  
 
+Here's the css part as an example not included within the code, sorry, would have been better to load it with the mu-plugin code:
+
+```
+/* Caltalaia custom language switcher for MSLS */
+/* =========================================
+   Variables (theme-friendly)
+========================================= */
+.msls-switcher {
+    --msls-bg: #fff;
+    --msls-color: currentColor;
+    --msls-border: rgba(0,0,0,0.08);
+    --msls-hover: rgba(0,0,0,0.05);
+    --msls-shadow: 0 10px 26px rgba(0,0,0,0.14);
+    --msls-radius: 8px;
+    --msls-speed: 0.18s;
+    --msls-delay: 0.04s;	
+}
+
+/* Dark mode */
+/*
+@media (prefers-color-scheme: dark) {
+    .msls-switcher {
+        --msls-bg: #1e1e1e;
+        --msls-color: #eee;
+        --msls-border: rgba(255,255,255,0.1);
+        --msls-hover: rgba(255,255,255,0.08);
+        --msls-shadow: 0 10px 26px rgba(0,0,0,0.5);
+    }
+}
+*/
+/* =========================================
+   Container
+========================================= */
+.msls-switcher {
+    position: relative;
+    display: inline-block;
+    font-size: 1.3rem;
+	font-family: var(--wp--preset--font-family--base-hand);	
+    color: var(--msls-color);
+	color-scheme: light;
+	margin-block-start: 0;
+}
+
+/* =========================================
+   Toggle
+========================================= */
+.msls-toggle {
+    list-style: none;
+    cursor: pointer;
+    outline: none;	
+}
+
+.msls-current {
+    display: inline-flex;
+    align-items: center;
+	vertical-align: center;
+    gap: 0.35em;
+}
+
+/* Arrow */
+.msls-current::after {
+    content: "▾";
+    font-size: 1.7em;
+    opacity: 0.6;
+    transition: transform var(--msls-speed) ease;
+}
+
+.msls-toggle .msls-current img, .msls-toggle .msls-current svg {
+	height: calc(var(--wp--custom--fixed-bottom-bar--icon-size) - 1rem);
+	width: calc(var(--wp--custom--fixed-bottom-bar--icon-size) - 1rem);	
+}
+
+.msls-toggle .msls-current svg {
+	fill: currentColor;
+	display: inline-block;
+}
+
+.msls-toggle .msls-current svg path {
+	fill: currentColor;
+}
+
+.msls-toggle:hover .msls-current::after,
+.msls-toggle:focus-within .msls-current::after {
+    transform: rotate(180deg);
+}
+```
+
 ---
 
 ## Icons Without Overhead
