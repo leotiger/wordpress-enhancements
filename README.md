@@ -60,6 +60,24 @@ This may seem minor, but becomes critical in cases like:
 
 ---
 
+### Accordion Auto-Scroll (Gutenberg)
+
+Automatically scrolls the opened accordion item into view when using the native Accordion block in WordPress (Gutenberg).
+
+#### ✨ Features
+
+- Smoothly scrolls the **opened item header** into view  
+- Works with the **Interactivity API** (`data-wp-*`, `is-open`)  
+- Handles `openByDefault` correctly (no jump on page load)  
+- Skips scrolling if the header is already visible  
+- Lightweight, dependency-free, and frontend-only
+- Adjust scroll offset (for sticky headers) inside the js (could be improved)
+- Designed for the new Accordion block, not legacy implementations
+- Uses MutationObserver because the Interactivity API is state-driven (no DOM events)
+- No editor-side behavior (frontend only)
+
+---
+
 ## Multilingual Without Paid Services and Dependencies
 
 Building a multilingual website in WordPress is often an exercise in dependency:
