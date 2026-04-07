@@ -88,7 +88,7 @@ But it is not enough.
 - increase flexibility  
 - fix issues found in the current WordPress version  
 
-Here's the css part as an example not included within the code, sorry, would have been better to load it with the mu-plugin code:
+Here's the css part as an example not included within the code, sorry, would have been better to load it with the mu-plugin code but this is more of a brainstorming repository:
 
 ```
 /* Caltalaia custom language switcher for MSLS */
