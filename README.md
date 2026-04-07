@@ -39,6 +39,8 @@ The Image, Gallery, and Carousel blocks have limitations:
 - The Carousel block does not provide a natural slide progression within the same overlay for images included in the carousel block  
 - The Gallery block does support this behavior natively
 
+The image lightbox for carousel picture can be improved to have a more native touch via css and js. 
+
 👉 We implemented a custom solution to unify behavior and improve visual control.
 
 ---
@@ -52,7 +54,7 @@ Gutenberg currently does not allow:
 
 This may seem minor, but becomes critical in cases like:
 
-> Adding an image inside a footer line
+> Adding an image inside a footnote which breaks the footnote block
 
 👉 Solution: a small extension that adds this capability without breaking the block system.
 
@@ -68,10 +70,10 @@ Building a multilingual website in WordPress is often an exercise in dependency:
 ### Our approach
 
 - Small website  
-- Direct knowledge of the languages  
+- Foster the own language skills  
 - Manual translations  
 
-Browsers already provide automatic translation; what is really needed is a clear way to switch languages.
+Browsers already provide automatic translation for languages not supported by our language skills; what is really needed is a clear way to switch languages.
 
 ### MSLS
 
