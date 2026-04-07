@@ -60,7 +60,7 @@ This may seem minor, but becomes critical in cases like:
 
 ---
 
-## Multilingual Without Dependencies
+## Multilingual Without Pain Services and Dependencies
 
 Building a multilingual website in WordPress is often an exercise in dependency:
 
