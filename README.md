@@ -56,7 +56,10 @@ This may seem minor, but becomes critical in cases like:
 
 > Adding an image inside a footnote which breaks the footnote block
 
-👉 Solution: a small extension that adds this capability without breaking the block system.
+👉 Solution: 
+
+A small extension that adds this capability without breaking the block system, using image as background and controlling display with style instrucions.
+We added lightbox support for these images as well.
 
 ---
 
