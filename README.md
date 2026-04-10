@@ -86,7 +86,7 @@ This solution provides:
 
 * language-based routing (`/de/`, `/fr/`, etc.)
 * per-post translation linking (TRID system)
-* early locale switching (compatible with Vik Booking)
+* early locale switching (compatible with Vik Booking which is our use case, to build a multi-lingual site for a small accommodation business we are running.)
 * SEO-ready output (canonical + hreflang)
 * a context-aware language switcher (no redirects, no JS hacks)
 
