@@ -78,6 +78,195 @@ Automatically scrolls the opened accordion item into view when using the native 
 
 ---
 
+## 🌍 Multilingual Router + Language Switcher (LSFLR)
+
+A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
+
+This solution provides:
+
+* language-based routing (`/de/`, `/fr/`, etc.)
+* per-post translation linking (TRID system)
+* early locale switching (compatible with Vik Booking)
+* SEO-ready output (canonical + hreflang)
+* a context-aware language switcher (no redirects, no JS hacks)
+
+### ✨ Features
+
+#### 🌐 Language Routing
+
+* Clean URLs with language prefix:
+
+  ```
+  /de/
+  /fr/
+  /es/
+  ```
+* Default language without prefix (e.g. `/`)
+* Automatic language detection from URL
+
+### 🔗 Translation System (TRID-based)
+
+* Each post/page belongs to a translation group (`_trid`)
+* Each translation stores its own language (`_lang`)
+* No dependency on external translation plugins
+
+### 🧠 Locale Handling (Critical)
+
+* Forces WordPress locale early (`plugins_loaded`)
+* Ensures compatibility with plugins that rely on locale at init time
+* Required for correct translations in Vik Booking
+
+### 🔎 SEO Ready
+
+* Correct `<link rel="canonical">` per language
+* Full `<link rel="alternate" hreflang="...">` support:
+
+  * singular pages
+  * archives
+  * pagination
+* Clean URL structure → no duplicate content
+
+### 🔁 Context-Aware Language Switcher
+
+* Preserves:
+
+  * current page
+  * pagination (`/page/2`)
+  * archives (`/category/...`)
+  * query parameters (e.g. booking data)
+
+Example:
+
+```
+/de/category/news/page/3
+→ /en/category/news/page/3
+```
+
+### ⚡ Performance
+
+* Optional DB index on `_lang` for fast queries
+* Compatible with object caching
+* Lightweight (no runtime parsing, no DOM manipulation)
+
+### 🧩 Components
+
+#### 1. Language Router
+
+Handles:
+
+* language detection
+* rewrite rules
+* query filtering
+* locale switching
+
+### 2. Language Switcher (LSFLR)
+
+* Gutenberg block + PHP render
+* Object-based (no DOM parsing)
+* Fully extensible
+* Supports:
+
+  * label / icon / custom display
+  * dropdown / dropup
+
+### 📦 Usage
+
+#### Gutenberg
+
+Use block:
+
+```
+LSFLR Switcher
+```
+
+#### PHP
+
+```php
+echo my_lsflr_render_switcher();
+```
+
+### ⚙️ Configuration
+
+#### Define primary language
+
+```php
+add_filter('my_primary_language', function(){
+    return 'ca';
+});
+```
+
+### Supported languages
+
+Derived automatically from:
+
+* installed WordPress languages
+* * primary language fallback
+
+
+### 🧠 How it works
+
+#### Routing
+
+```
+/de/page → lang = de
+/page    → lang = default (ca)
+```
+
+#### Content filtering
+
+Queries are automatically restricted to:
+
+```
+_lang = current language
+```
+
+#### Translation linking
+
+Posts are connected via:
+
+```
+_trid = translation group
+```
+
+### ⚠️ Limitations
+
+This system is intentionally designed to stay **simple and predictable**.
+
+* Taxonomy slugs (categories, tags) are **not translated**
+* Archive structures are identical across languages
+* Missing translations fall back to source content (no automatic redirect)
+* No automatic machine translation or sync
+
+
+### 🎯 Intended Use Case
+
+Best suited for:
+
+* small to medium websites (≈ up to a few thousand posts)
+* projects requiring **full control over URLs and logic**
+* environments where heavy multilingual plugins are unnecessary
+
+### 🚀 Why this approach
+
+Instead of abstracting everything, this system:
+
+* keeps logic transparent
+* avoids hidden behavior
+* integrates cleanly with custom workflows
+
+It is especially useful when working with Vik Booking, where timing and locale handling are critical.
+
+### 🧱 Philosophy
+
+> Do less, but do it correctly.
+
+* no overengineering
+* no unnecessary abstraction
+* predictable behavior over feature bloat
+
+If needed, the system can be extended incrementally (SEO, caching, routing rules), but remains intentionally lightweight at its core.
+
+
 ## Multilingual Without Paid Services and Dependencies
 
 Building a multilingual website in WordPress is often an exercise in dependency:
@@ -95,10 +284,14 @@ Browsers already provide automatic translation for languages not supported by ou
 
 ### MSLS
 
-We use:
+We use (not anymore):
 
 **Multisite Language Switcher (MSLS)**  
 (one of the few truly free plugins)
+
+MSLS is for WP Multisite, finally the better approach for small multilingual sites is a single site with multilanguage support. 
+
+(Please see above our Language Router and Language Switcher for Language Router implementation which offer a complete solution for single sites.)
 
 But it is not enough.
 
