@@ -78,6 +78,25 @@ Automatically scrolls the opened accordion item into view when using the native 
 
 ---
 
+# Multilingual Without Paid Services, Heavy Plugins and Dependencies
+
+Building a multilingual website in WordPress is often an exercise in dependency:
+
+- Paid plugins
+- Complex multisite setups  
+
+### Our approach
+
+- Small website  
+- Foster the own language skills  
+- Manual translations  
+
+Browsers already provide automatic translation for languages outside a user’s skill set, and with modern AI tools, generating translations is no longer the real challenge. What actually matters is having a clear and reliable way to switch between languages. For small websites, content is usually created gradually over time, often starting with no more than 20 or 30 pages and posts. In this context, using large multilingual plugins to manage a few hundred pages is often unnecessary, heavy, and restrictive.
+
+Here we provide two mu-plugins. The first could be abstracted into classes and developed into a full-fledged plugin, but that is not our goal—feel free to use the code as a starting point and take the credit. The second is the result of an earlier architectural decision to use WordPress Multisite, which turned out to be overkill and is poorly supported by many plugins, especially those related to paid services. In our case, Vik Booking behaves more like a packaged Joomla application, even relying internally on Joomla-style translation mechanisms. The WordPress ecosystem is, in that sense, quite an interesting one.
+
+---
+
 ## 🌍 Multilingual Router + Language Switcher (LSFLR)
 
 A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
@@ -268,23 +287,7 @@ It is especially useful when working with Vik Booking, where timing and locale h
 
 If needed, the system can be extended incrementally (SEO, caching, routing rules), but remains intentionally lightweight at its core.
 
-
-## Multilingual Without Paid Services and Dependencies
-
-Building a multilingual website in WordPress is often an exercise in dependency:
-
-- Paid plugins  
-- Complex multisite setups  
-
-### Our approach
-
-- Small website  
-- Foster the own language skills  
-- Manual translations  
-
-Browsers already provide automatic translation for languages not supported by our language skills; what is really needed is a clear way to switch languages.
-
-### MSLS
+## MSLS
 
 We use (not anymore):
 
