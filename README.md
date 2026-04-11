@@ -26,7 +26,9 @@ The **Plugin Loader** allows integrating more complex functionality — organize
 This avoids:
 - proliferation of small scattered plugins  
 - unnecessary external dependencies  
-- loss of system control  
+- loss of system control
+
+You simply enable or disable the stuff you want or not want to use in this file. The basic Gutenberg enhancements are not included, only more complex stuff.
 
 ---
 
