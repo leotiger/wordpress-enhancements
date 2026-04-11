@@ -464,3 +464,7 @@ It may serve as a base for more complex plugins, including commercial ones.
 We are not interested in additional work or responsibility related to this code.
 
 **It’s all yours.**
+
+## Environment
+
+The code was built and tested on a fresh WordPress instance (v6.9.4) running on PHP v8.3.30. We used ChatGPT to assist, which definitely reduced development time — but believe me, sometimes it drives you mad…
