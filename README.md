@@ -28,7 +28,7 @@ This avoids:
 - unnecessary external dependencies  
 - loss of system control
 
-You simply enable or disable the stuff you want or not want to use in this file. The basic Gutenberg enhancements are not included, only more complex stuff.
+You simply enable or disable the stuff you want or not want to use in this file, simply place two slashes to comment out what's not desired. The language switcher add-on for MSLS is not included as we don't use it anymore.
 
 ---
 
