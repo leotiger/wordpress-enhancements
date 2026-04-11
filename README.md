@@ -6,6 +6,7 @@ Meanwhile, the WordPress ecosystem increasingly behaves like a business platform
 
 This project is a practical response to that situation.
 
+You can see things in action on my test instance under [Cal Talaia Develop](https://wp.cal-talaia.cat).
 ---
 
 ## Philosophy
