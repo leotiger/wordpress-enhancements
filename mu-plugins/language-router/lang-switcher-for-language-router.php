@@ -1,11 +1,12 @@
 <?php
 /**
  * LSFLR: Language Switcher for Language Routing  – Object-based (no DOM, no parsing)
+ * Author: Uli Hake
+ * Version: 1.0
  */
 
-
 /* -------------------------------------------------
- * DATA (LSFLR as provider)
+ * DATA (Language Router as provider)
  * ------------------------------------------------- */
 function my_lsflr_get_languages() {
 

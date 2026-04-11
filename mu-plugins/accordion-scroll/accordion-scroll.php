@@ -1,6 +1,8 @@
 <?php
 /**
  * Accordion Scroll - improved UI behaviour for users
+ * Author: Uli Hake
+ * Version: 1.0
  */
 
 if (!defined('ABSPATH')) exit;

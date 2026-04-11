@@ -1,3 +1,9 @@
+/**
+ * Plugin Name: Cal Talaia Gutenberg Enhancements
+ * Author: Uli Hake
+ * Version: 1.0
+ */
+
 .inline-image-wrapper:hover {
     outline: 2px solid #007cba;
 }

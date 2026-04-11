@@ -9,6 +9,7 @@ $mu_plugins = [
 	'svg-icon-block/svg-icon-block.php',
 	'accordion-scroll/accordion-scroll.php',
 	'language-router/language-router.php',
+	'gutenberg-enhancements/gutenberg-enhancements.php',
 ];
 
 foreach ($mu_plugins as $plugin) {

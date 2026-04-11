@@ -1,3 +1,9 @@
+/**
+ * Accordion Scroll - improved UI behaviour for users
+ * Author: Uli Hake
+ * Version: 1.0
+ */
+
 (function () {
 	document.addEventListener('DOMContentLoaded', () => {
 		const OFFSET = document.querySelector('.site-header')?.offsetHeight || 110;

@@ -1,7 +1,11 @@
 <?php
 /**
- * Plugin Name: Cal Talaia Gutenberg Enhancements (FINAL STABLE)
+ * Plugin Name: Cal Talaia Gutenberg Enhancements
+ * Author: Uli Hake
+ * Version: 1.0
  */
+
+if (!defined('ABSPATH')) exit;
 
 add_action('enqueue_block_editor_assets', function () {
 
@@ -12,7 +16,7 @@ add_action('enqueue_block_editor_assets', function () {
 
 	
     wp_register_script(
-        'caltalaia-inline-tools',
+        'gb-enhance-inline-tools',
         false,
         [
             'wp-rich-text',
@@ -25,7 +29,7 @@ add_action('enqueue_block_editor_assets', function () {
         true
     );
 
-    wp_add_inline_script('caltalaia-inline-tools', <<<'JS'
+    wp_add_inline_script('gb-enhance-inline-tools', <<<'JS'
 (function(wp){
 
     const { registerFormatType, toggleFormat, insert, create } = wp.richText;
@@ -428,21 +432,21 @@ add_action('enqueue_block_editor_assets', function () {
 })(window.wp);
 JS
 );
-wp_enqueue_script('caltalaia-inline-tools');
+wp_enqueue_script('gb-enhance-inline-tools');
 });
 
 
 add_action('wp_enqueue_scripts', function () {
 
     wp_register_script(
-        'caltalaia-lightbox',
+        'gb-background-lightbox',
         false,
         [],
         null,
         true
     );
 
-    wp_add_inline_script('caltalaia-lightbox', <<<'JS'
+    wp_add_inline_script('gb-background-lightbox', <<<'JS'
 document.addEventListener('click', function (e) {
 
     const el = e.target.closest('[data-lightbox="true"]');
@@ -526,5 +530,5 @@ document.addEventListener('click', function (e) {
 JS
     );
 
-    wp_enqueue_script('caltalaia-lightbox');
+    wp_enqueue_script('gb-background-lightbox');
 });

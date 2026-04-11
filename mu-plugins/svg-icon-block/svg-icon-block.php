@@ -1,6 +1,8 @@
 <?php
 /**
- * SVG Icon Block (Ultimate Optimized)
+ * SVG Icon Block
+ * Author: Uli Hake
+ * Version: 1.0
  */
 
 if (!defined('ABSPATH')) exit;

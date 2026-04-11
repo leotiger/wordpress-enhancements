@@ -1,3 +1,10 @@
+/**
+ * Plugin Name: Lightbox Overlay Control (MU Module)
+ * Description: Adds overlay styling controls to Gutenberg Image & Gallery lightbox.
+ * Author: Uli Hake
+ * Version: 1.0
+ */
+
 (function () {
 
   var lastOverlay = null;

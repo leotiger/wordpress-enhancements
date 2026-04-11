@@ -1,8 +1,11 @@
 <?php
 /**
- * Plugin Name: Multilanguage Router
- * Author: Uli Hake 
+ * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
+ * Author: Uli Hake
+ * Version: 1.0 (there's a internal version handling in the CONFIG SECTION)
  */
+
+if (!defined('ABSPATH')) exit;
 
 // =============================
 // REGISTER META (GUTENBERG SAFE)
