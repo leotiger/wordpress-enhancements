@@ -111,6 +111,7 @@ This solution provides:
 * early locale switching (compatible with Vik Booking which is our use case, to build a multi-lingual site for a small accommodation business we are running.)
 * SEO-ready output (canonical + hreflang)
 * a context-aware language switcher (no redirects, no JS hacks)
+* Allows to run the instance with primary language set to en_US, for example, but serve content in Catalan and delegate en_US to a subfolder, e.g. /en
 
 ### ✨ Features
 
@@ -291,9 +292,17 @@ It is especially useful when working with Vik Booking, where timing and locale h
 If needed, the system can be extended incrementally (SEO, caching, routing rules), but remains intentionally lightweight at its core.
 
 ### Known Issues and Workarounds
+
 If you create a page, save it first and change language after first save. Once you've changed the language you will need to reload the page to be able to 
 assign page equivalents in other languages correctly. I've spent already a lot of time on this, several days, and not sure if I will fix this. For my personal
 usage, that's alright, I know how to proceed, but it's something to work on to make it clean and robust.
+
+### Implementation in your instances
+
+The code is provided as a basis to adapt it to your needs. A reflection of this is the languages directory which contains language .mo files for Vik Booking.
+Those won't be of any use for you, I kept them simply as an example. The code hasn't been tested in conjunction with other plugins apart from the ones I'm using.
+This means that SEO plugins as well as many others might interfere and request solutions. If you test the language routing offered on a clean system, it should work.
+For me it works with some 10, 12 additional plugins.
 
 ---
 
