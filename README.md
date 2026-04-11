@@ -138,7 +138,7 @@ This solution provides:
 * Ensures compatibility with plugins that rely on locale at init time
 * Required for correct translations in Vik Booking itself (our use case)
 
-(Vik Booking offers shortcodes but the language setting is not respected, at least in the current version of WP at writing. We may be wrong and feel invited to correct us on that.)
+(Vik Booking offers to configure and use shortcodes but the language setting is not respected, at least in the current version of WP at writing. We may be wrong and feel invited to correct us on that.
 
 ### 🔎 SEO Ready
 
