@@ -297,7 +297,7 @@ It is especially useful when working with Vik Booking, where timing and locale h
 * no unnecessary abstraction
 * predictable behavior over feature bloat
 
-If needed, the system can be extended incrementally (SEO, caching, routing rules), but remains intentionally lightweight at its core.
+If needed, the system can be finetuned which could be necessary once you use SEO and caching plutins, etc. (SEO, caching, routing rules), but remains intentionally lightweight at its core.
 
 ### Known Issues and Workarounds
 
