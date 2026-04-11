@@ -104,6 +104,8 @@ Here we provide two mu-plugins. The first could be abstracted into classes and d
 
 A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
 
+Our WPML for the poor...
+
 This solution provides:
 
 * language-based routing (`/de/`, `/fr/`, etc.)
