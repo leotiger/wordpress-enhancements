@@ -117,7 +117,7 @@ This solution provides:
 * early locale switching (compatible with Vik Booking which is our use case, to build a multi-lingual site for a small accommodation business we are running.)
 * SEO-ready output (canonical + hreflang)
 * a context-aware language switcher (no redirects, no JS hacks)
-* Allows to run the instance with primary language set to en_US, for example, but serve content in Catalan and delegate en_US to a subfolder, e.g. /en
+* Allows to run the instance with primary language set to en_US, for example, but serve content in Catalan and delegate en_US to a virtual subfolder (slug), e.g. /en
   (This seems absurd, but for plugins like Vik Booking which behaves better when it runs for admin in en_US that's vital, we use a .cat domain and it would
   be overly absurd to serve English as the first language, has and had to serve Catalan first.)
 
