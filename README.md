@@ -42,7 +42,8 @@ The Image, Gallery, and Carousel blocks have limitations:
 - The Carousel block does not provide a natural slide progression within the same overlay for images included in the carousel block  
 - The Gallery block does support this behavior natively
 
-The image lightbox for carousel picture can be improved to have a more native touch via css and js. 
+The image lightbox for carousel pictures could be improved to have a more native touch and feel via css.
+Works on top of the [Carousel Slider Block Plugin](https://wordpress.org/plugins/carousel-block/) provided for Wordpress by Virgildia.
 
 👉 We implemented a custom solution to unify behavior and improve visual control.
 
