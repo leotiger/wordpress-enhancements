@@ -19,7 +19,7 @@ You can see things in action on my test instance under [Cal Talaia Develop](http
 
 ---
 
-## Plugin Loader
+## Enhancements Plugin Loader
 
 The **Plugin Loader** allows integrating more complex functionality — organized across multiple files — within a clear and maintainable structure.
 
