@@ -8,6 +8,7 @@ $mu_plugins = [
     'lightbox-overlay-control/lightbox-overlay-control.php',
 	'svg-icon-block/svg-icon-block.php',
 	'accordion-scroll/accordion-scroll.php',
+	'language-router/language-router.php',
 ];
 
 foreach ($mu_plugins as $plugin) {
