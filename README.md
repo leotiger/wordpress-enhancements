@@ -290,6 +290,13 @@ It is especially useful when working with Vik Booking, where timing and locale h
 
 If needed, the system can be extended incrementally (SEO, caching, routing rules), but remains intentionally lightweight at its core.
 
+### Known Issues and Workarounds
+If you create a page, save it first and change language after first save. Once you've changed the language you will need to reload the page to be able to 
+assign page equivalents in other languages correctly. I've spent already a lot of time on this, several days, and not sure if I will fix this. For my personal
+usage, that's alright, I know how to proceed, but it's something to work on to make it clean and robust.
+
+---
+
 ## MSLS
 
 We use (not anymore):
