@@ -89,8 +89,8 @@ Automatically scrolls the opened accordion item into view when using the native 
 
 Building a multilingual website in WordPress is often an exercise in dependency:
 
-- Paid plugins
-- Complex multisite setups  
+- Plugins with pay walls and constant advertising for Single Instance
+- Complex multisite setups and complex maintainence
 
 ### Our approach
 
