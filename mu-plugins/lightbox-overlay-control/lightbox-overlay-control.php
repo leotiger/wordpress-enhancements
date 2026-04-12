@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name: Lightbox Overlay Control (MU Module)
- * Description: Adds overlay styling controls to Gutenberg Image & Gallery lightbox.
+ * Plugin Name: Lightbox Overlay Carousel for Carousel Slider Block (MU Module)
+ * Description: Adds overlay carousel for images included in Carousel Slider Block.
  * Author: Uli Hake
  * Version: 1.0
  */
