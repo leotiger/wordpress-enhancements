@@ -2,7 +2,8 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.0 (there's a internal version handling in the CONFIG SECTION)
+ * Version: 1.1
+ * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
 if (!defined('ABSPATH')) exit;
@@ -49,7 +50,7 @@ function my_source_language(){
 }
 
 define('MY_LANG', my_is_valid_lang(my_detect_lang()) 
-    ? my_detect_lang() 
+    ? my_detect_lang_safe() 
     : my_source_language()
 );
 
@@ -142,6 +143,48 @@ function my_language_label($lang){
     return strtoupper($lang);
 }
 
+// Early detection needed, get it
+function my_detect_lang_safe(){
+
+    $langs = my_languages();
+    $default = my_source_language();
+
+    // 1. URL
+    $uri = trim($_SERVER['REQUEST_URI'] ?? '/', '/');
+    $seg = explode('/', $uri);
+
+    if (!empty($seg[0])) {
+        $url_lang = strtolower($seg[0]);
+        if (in_array($url_lang, $langs, true)) {
+            return $url_lang;
+        }
+    }
+
+    // 2. GET (SAFE — no WP dependency)
+    if (!empty($_GET['lang'])) {
+        $q_lang = strtolower($_GET['lang']);
+        if (in_array($q_lang, $langs, true)) {
+            return $q_lang;
+        }
+    }
+
+    // 3. COOKIE
+    if (!empty($_COOKIE['my_lang'])) {
+
+        $cookie_lang = strtolower(trim($_COOKIE['my_lang']));
+
+        if (strpos($cookie_lang, '-') !== false) {
+            $cookie_lang = substr($cookie_lang, 0, 2);
+        }
+
+        if (in_array($cookie_lang, $langs, true)) {
+            return $cookie_lang;
+        }
+    }
+
+    return $default;
+}
+
 function my_detect_lang(){
 
     $langs = my_languages();
@@ -162,7 +205,7 @@ function my_detect_lang(){
     }
 
     // =============================
-    // 2. COOKIE (validated + normalized)
+    // 2. COOKIE
     // =============================
     if (!empty($_COOKIE['my_lang'])) {
 
@@ -276,6 +319,14 @@ add_action('init', function(){
 	);
 });
 
+// ==================================
+// QUERY VARS HANDLING FOR LANG
+// ==================================
+add_filter('query_vars', function($vars){
+    $vars[] = 'lang';
+    return $vars;
+});
+
 // =============================
 // VIK BOOKING
 // =============================
@@ -289,28 +340,33 @@ add_filter('locale', function($locale){
 
 }, 0);
 
-add_action('init', function(){
+add_filter('request', function($vars){
 
-    //if (is_admin()) return;
+    //if (!is_admin() && defined('MY_LANG')) {
+    //    $vars['lang'] = MY_LANG;
+    //}
 
-    if (!defined('MY_LANG')) return;
-	$_REQUEST['lang'] = sanitize_text_field(MY_LANG);
-    //$_REQUEST['lang'] = MY_LANG;
+    return $vars;
 
-}, 1); // ← very early
+});
 
-add_action('wp', function(){
+add_action('parse_query', function($q){
 
     if (is_admin()) return;
-
     if (!defined('MY_LANG')) return;
 
-    if (empty($_REQUEST['lang'])) {
-        //$_REQUEST['lang'] = my_locale_from_lang(MY_LANG);
-		$_REQUEST['lang'] = sanitize_text_field(MY_LANG);
-		//$_REQUEST['lang'] = MY_LANG;
-    }
+    $q->set('lang', MY_LANG);
 
+    if (!empty($_GET['s'])) {
+
+        $q->is_search = true;
+        $q->is_home   = false;
+
+        my_debug('Search forced', [
+            's' => $_GET['s']
+        ]);
+    }
+	
 });
 
 // =============================
@@ -432,24 +488,100 @@ function my_get_missing_languages($post_id) {
     return $missing;
 }
 // =============================
-// QUERY FILTER (SAFE)
+// PRE_GET_POSTS (PREPARATION)
 // =============================
-
 add_action('pre_get_posts', function($q){
 
-    if(is_admin() || !$q->is_main_query()) return;
 
-    // ONLY archives
-	if ($q->is_archive() || $q->is_home() || $q->is_singular()) {
-        $meta_query = $q->get('meta_query') ?: [];
+    if (!$q->is_main_query()) return;
+	
+    // =============================
+    // FRONTEND
+    // =============================
+    if (!is_admin()) {
+		
+	    // 🚫 NEVER touch front page
+    	if ($q->is_front_page()) return;
+		
+		// 🔥 SEARCH (highest priority)
+		if ($q->is_search()) {
+
+			$meta_query = $q->get('meta_query') ?: [];
+
+			$meta_query[] = [
+				'key'   => '_lang',
+				'value' => MY_LANG
+			];
+
+			$q->set('meta_query', $meta_query);
+
+			my_debug('Search filtered by language', [
+				'lang' => MY_LANG
+			]);
+
+			return;
+		}
+
+
+		// Only archives and home/blog index
+		if ($q->is_archive() || $q->is_home()) {
+
+			$meta_query = $q->get('meta_query') ?: [];
+
+			$meta_query[] = [
+				'key'   => '_lang',
+				'value' => MY_LANG
+			];
+
+			$q->set('meta_query', $meta_query);
+		}
+        return;
+    }
+
+    // =============================
+    // ADMIN
+    // =============================
+	if (is_admin()) {
+    $meta_query = $q->get('meta_query') ?: [];
+
+    // Language filter
+    if (!empty($_GET['my_lang_filter'])) {
+
+        $lang = sanitize_text_field($_GET['my_lang_filter']);
 
         $meta_query[] = [
-            'key' => '_lang',
-            'value' => MY_LANG
+            'key'   => '_lang',
+            'value' => $lang
+        ];
+    }
+
+    // Outdated filter
+    if (!empty($_GET['my_outdated_filter'])) {
+
+        $meta_query[] = [
+            'key'     => '_lang',
+            'value'   => my_source_language(),
+            'compare' => '!='
         ];
 
+        $meta_query[] = [
+            'relation' => 'OR',
+            [
+                'key'     => '_translation_source_updated_at',
+                'compare' => 'NOT EXISTS'
+            ],
+            [
+                'key'     => '_translation_source_updated_at',
+                'value'   => 0,
+                'compare' => '='
+            ]
+        ];
+    }
+
+    if (!empty($meta_query)) {
         $q->set('meta_query', $meta_query);
     }
+	}
 
 });
 
@@ -503,49 +635,107 @@ function my_get_posts($args = [], $fallback = false) {
 
 add_action('template_redirect', function(){
 
-    if(!is_singular()) return;
+    if (is_search()) return; // 🔥 CRITICAL
+
+    if (!is_singular()) return;
 
     global $post;
+    if (!$post) return;
 
     $translations = my_get_translations($post->ID);
 
-    if(MY_LANG === my_source_language()) return;
+    if (MY_LANG === my_source_language()) return;
 
-    if(!empty($translations[MY_LANG])){
+    if (!empty($translations[MY_LANG])){
 
-        if($translations[MY_LANG] != $post->ID){
-            wp_redirect(get_permalink($translations[MY_LANG]),301);
+        if ((int)$translations[MY_LANG] !== (int)$post->ID){
+            wp_redirect(get_permalink($translations[MY_LANG]), 301);
             exit;
         }
 
     } else {
-        define('MY_LANG_FALLBACK_ACTIVE', true);
+        if (!defined('MY_LANG_FALLBACK_ACTIVE')) {
+            define('MY_LANG_FALLBACK_ACTIVE', true);
+        }
     }
 
 });
-
 // =============================
 // HOMEPAGE HANDLING
 // =============================
-
 add_action('template_redirect', function(){
 
-    if (!is_front_page()) return;
+    if (is_admin()) return;
+    if (!defined('MY_LANG')) return;
+
+    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+
+    // only exact root request
+    if ($path !== '/' && $path !== '') return;
+	if (is_search()) return;
 
     $front_id = get_option('page_on_front');
     if (!$front_id) return;
 
     $translations = my_get_translations($front_id);
 
-    if (!empty($translations[MY_LANG])) {
+    if (empty($translations[MY_LANG])) return;
 
-        if ($translations[MY_LANG] != $front_id) {
-            wp_redirect(get_permalink($translations[MY_LANG]), 301);
-            exit;
-        }
+    $target = get_permalink($translations[MY_LANG]);
+
+    if (untrailingslashit($target) === untrailingslashit(home_url('/'))) {
+        return;
     }
 
+    wp_redirect($target, 302);
+    exit;
+
 });
+
+// ==================================
+// SITE ICON
+// ==================================
+add_filter('render_block', function($block_content, $block){
+
+    if ($block['blockName'] !== 'core/site-logo') return $block_content;
+    if (!defined('MY_LANG')) return $block_content;
+
+    // 1. Get front page
+    $front_id = get_option('page_on_front');
+    if (!$front_id) return $block_content;
+
+    // 2. Get translations
+    $translations = my_get_translations($front_id);
+
+    // 3. Resolve correct target
+    if (MY_LANG === my_source_language()) {
+        $target_id = $front_id;
+    } elseif (!empty($translations[MY_LANG])) {
+        $target_id = $translations[MY_LANG];
+    } else {
+        // fallback to source
+        $target_id = $front_id;
+    }
+
+    $target_url = get_permalink($target_id);
+
+    // 4. Replace link safely
+    $block_content = preg_replace(
+        '/<a\s+([^>]*?)href="[^"]*"/',
+        '<a $1href="' . esc_url($target_url) . '"',
+        $block_content,
+        1
+    );
+
+    my_debug('Site logo TRID link', [
+        'lang' => MY_LANG,
+        'target_id' => $target_id,
+        'url' => $target_url
+    ]);
+
+    return $block_content;
+
+}, 20, 2);
 
 // =============================
 // MENU TRANSLATION
@@ -619,16 +809,6 @@ add_action('add_meta_boxes', function(){
 			// =========================================
 			// TRANSLATE FROM PRIMARY LANGUAGE ONLY
 			// =========================================
-			/*
-			wp_dropdown_pages([
-				'name'              => 'my_trans_'.$l,
-				'selected'          => $id,
-				'show_option_none'  => '—',
-				'meta_key'          => '_lang',
-				//'meta_value'        => $l
-				'meta_value' => my_default_language()				
-			]);
-			*/
 			$id = $translations[$l] ?? '';
 
 			$args = [
@@ -651,7 +831,6 @@ add_action('add_meta_boxes', function(){
 			if (!empty($id)) {
 				echo '<button type="button" class="button my-import" data-lang="'.$l.'">Override</button>';
 			}
-			//echo '<button type="button" class="button my-import" data-lang="'.$l.'">Override</button>';
 
             echo '</p>';
         }
@@ -674,14 +853,11 @@ add_action('wp_after_insert_post', function($post_id, $post){
     // 🔹 LANGUAGE
     // =============================
 
-    if (!(defined('DOING_AJAX') && DOING_AJAX)) {
-
-        if (isset($_POST['my_lang']) && my_is_valid_lang($_POST['my_lang'])) {
-            my_set_lang($post_id, sanitize_text_field($_POST['my_lang']));
-        }
+    if (isset($_POST['my_lang']) && my_is_valid_lang($_POST['my_lang'])) {
+        my_set_lang($post_id, sanitize_text_field($_POST['my_lang']));
     }
 
-    if (!my_get_lang($post_id)) {
+    if (!get_post_meta($post_id, '_lang', true)) {
         my_set_lang($post_id, my_source_language());
     }
 
@@ -762,6 +938,9 @@ add_action('wp_after_insert_post', function($post_id, $post){
         }
     }
 
+	// Search Engine
+	my_build_search_content($post_id);
+	
 }, 10, 2);
 
 // =============================
@@ -1049,30 +1228,6 @@ add_action('restrict_manage_posts', function($post_type){
 
 });
 
-
-// Apply filter to query
-
-add_action('pre_get_posts', function($q){
-
-    if (!is_admin() || !$q->is_main_query()) return;
-    if ($q->is_front_page()) return;
-
-
-    if (empty($_GET['my_lang_filter'])) return;
-
-    $lang = sanitize_text_field($_GET['my_lang_filter']);
-
-    $meta_query = $q->get('meta_query') ?: [];
-
-    $meta_query[] = [
-        'key'   => '_lang',
-        'value' => $lang
-    ];
-
-    $q->set('meta_query', $meta_query);
-
-});
-
 // =============================
 // ADMIN FILTER: OUTDATED
 // =============================
@@ -1088,45 +1243,6 @@ add_action('restrict_manage_posts', function($post_type){
     echo '<option value="">All statuses</option>';
     echo '<option value="1" '.selected($current, '1', false).'>Outdated only</option>';
     echo '</select>';
-
-});
-
-
-// Apply filter
-add_action('pre_get_posts', function($q){
-
-    if (!is_admin() || !$q->is_main_query()) return;
-
-    if (empty($_GET['my_outdated_filter'])) return;
-
-    $meta_query = $q->get('meta_query') ?: [];
-
-    // Only translations (NOT default language)
-    $meta_query[] = [
-        'key'     => '_lang',
-        'value'   => my_source_language(),
-        'compare' => '!='
-    ];
-
-    // Outdated logic
-    $meta_query[] = [
-        'relation' => 'OR',
-
-        // Missing translation timestamp
-        [
-            'key'     => '_translation_source_updated_at',
-            'compare' => 'NOT EXISTS'
-        ],
-
-        // Explicitly marked outdated
-        [
-            'key'     => '_translation_source_updated_at',
-            'value'   => 0,
-            'compare' => '='
-        ]
-    ];
-
-    $q->set('meta_query', $meta_query);
 
 });
 
@@ -1162,44 +1278,34 @@ function my_lang_permalink($url, $post){
 }
 
 // ==================================
-// SEO
+// SEO CANONICAL LINKS
 // ==================================
 add_action('wp_head', function(){
 
-    if (!is_singular()) return;
-
-    global $post;
-
-    $translations = my_get_translations($post->ID);
-
-    foreach($translations as $lang => $id){
-        $url = get_permalink($id);
-        echo '<link rel="alternate" hreflang="'.esc_attr($lang).'" href="'.esc_url($url).'" />' . "\n";
+    if (my_hreflang_mode() !== 'custom') {
+        my_debug('Hreflang skipped (plugin mode)');
+        return;
     }
-
-    // x-default
-    if (!empty($translations[my_source_language()])) {
-        echo '<link rel="alternate" hreflang="x-default" href="'.get_permalink($translations[my_source_language()]).'" />' . "\n";
-    }
-
-});
-
-// ===================================
-// CANONICAL LINKS (AVOID DUPLICATES)
-// ===================================
-add_action('wp_head', function(){
-
-    // =============================
+	
+	// =============================
     // 🔹 SINGULAR (your existing logic)
     // =============================
     if (is_singular()) {
 
         global $post;
 
-        if (!$post) return;
+        if (!$post) {
+            my_debug('Hreflang aborted: no post');
+            return;
+        }
 
         $translations = my_get_translations($post->ID);
 
+        my_debug('Hreflang singular', [
+            'post_id' => $post->ID,
+            'translations' => $translations
+        ]);		
+		
         if (empty($translations)) return;
 
         foreach($translations as $lang => $id){
@@ -1243,9 +1349,9 @@ add_action('wp_head', function(){
     // 🔹 ARCHIVES (category, home, etc.)
     // =============================
     if (is_archive() || is_home()) {
-
-        $path = trim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
-
+		$path = trim($_SERVER['REQUEST_URI'] ?? '', '/');
+		$path = trim(parse_url('/' . $path, PHP_URL_PATH), '/');
+		
         foreach(my_languages() as $lang){
 
             if ($lang === my_source_language()) {
@@ -1262,22 +1368,87 @@ add_action('wp_head', function(){
 
 }, 1);
 
+add_action('wp', function(){
 
-add_action('init', function() {
-	if (is_admin()) return;
+    if (is_admin()) return;
+
+    if (my_hreflang_mode() !== 'custom') {
+        my_debug('Canonical kept (plugin mode)');
+        return;
+    }
+
     remove_action('wp_head', 'rel_canonical');
+	my_debug('Canonical removed (custom mode)');
+
 });
 
 // Take care of SEO Plugins to avoid problems
 // Not sure if this works, needs testing...
-add_action('wp_head', function(){
+function my_hreflang_mode(){
 
-    // prevent duplicates if SEO plugin active
-    static $done = false;
-    if ($done) return;
-    $done = true;
+    static $mode = null;
 
-}, 0);
+    if ($mode !== null) return $mode;
+
+    $mode = apply_filters('my_hreflang_mode', 'custom');
+
+    return $mode;
+}
+
+add_action('init', function(){
+
+    if (my_hreflang_mode() !== 'custom') {
+        my_debug('Plugin hreflang NOT disabled (plugin mode)');
+        return;
+    }
+
+    my_debug('Disabling plugin hreflang');
+	// YOAST
+    if (defined('WPSEO_VERSION')) {
+        add_filter('wpseo_hreflang', '__return_false');
+        my_debug('Yoast hreflang disabled');
+    }
+
+	// RANK_MATH
+    if (defined('RANK_MATH_VERSION')) {
+        add_filter('rank_math/frontend/hreflang', '__return_false');
+        my_debug('RankMath hreflang disabled');
+    }
+	
+    // AIOSEO
+    if (defined('AIOSEO_VERSION')) {
+        add_filter('aioseo_hreflang', '__return_false');
+		my_debug('AIOSEO hreflang disabled');
+
+    }
+
+    // SEOPress
+    if (defined('SEOPRESS_VERSION')) {
+        add_filter('seopress_hreflang', '__return_false');
+		my_debug('SEOPRESS hreflang disabled');
+    }
+
+});
+
+add_action('wp', function(){
+
+    if (is_admin()) return;
+
+    // Only log meaningful requests
+    if (!is_singular() && !is_archive() && !is_home() && !is_search()) return;
+
+    my_debug('Request context', [
+        'url' => $_SERVER['REQUEST_URI'] ?? '',
+        'lang' => defined('MY_LANG') ? MY_LANG : null,
+        'type' => [
+            'singular' => is_singular(),
+            'archive'  => is_archive(),
+            'home'     => is_home(),
+            'search'   => is_search(),
+        ]
+    ]);
+
+});
 
 // ====================================
 // LANGUAGE COOKIE
@@ -1363,13 +1534,244 @@ function my_clear_translation_cache($post_id){
 }
 
 // ===========================
-// DEBUG
-// ===========================
-/*
+// SEARCH SUPPORT VIA SEARCH TEMPLATES
+// ADD LANGUAGE SPECIFIC SEARCH TEMPLATES VIA THEME OPTIONS 
+// SAVING A COPY, e.g. search.html saved as search-en.html
+// ADAPT THE TEMPLATE TO USE LANGUAGE SPECIFIC TEMPLATE PARTS (PATTERNS) AFTERWARDS
+// ============================
+add_filter('get_block_templates', function($templates, $query, $template_type){
+
+    if ($template_type !== 'wp_template') return $templates;
+    if (!defined('MY_LANG')) return $templates;
+    if (!is_search()) return $templates;
+
+    $lang_slug = 'search-' . MY_LANG;
+
+    $tpl = get_page_by_path($lang_slug, OBJECT, 'wp_template');
+
+    if ($tpl) {
+        my_debug('Search template override SUCCESS', [
+            'template' => $lang_slug
+        ]);
+
+        return [ _build_block_template_result_from_post($tpl) ];
+    }
+
+    return $templates;
+
+}, 10, 3);
+
+add_filter('render_block', function($block_content, $block){
+
+    if ($block['blockName'] !== 'core/search') return $block_content;
+    if (!defined('MY_LANG')) return $block_content;
+
+    // 🔧 1. FORCE ACTION="/"
+    $block_content = preg_replace(
+        '/<form[^>]*action="[^"]*"/',
+        '<form action="/"',
+        $block_content
+    );
+
+    // 🔧 2. ENSURE LANG IS PRESENT
+    if (strpos($block_content, 'name="lang"') === false) {
+
+        $hidden = '<input type="hidden" name="lang" value="' . esc_attr(MY_LANG) . '">';
+
+        $block_content = preg_replace(
+            '/<\/form>/',
+            $hidden . '</form>',
+            $block_content,
+            1
+        );
+    }
+
+    my_debug('Search form fixed (root + lang)', [
+        'lang' => MY_LANG
+    ]);
+
+    return $block_content;
+
+}, 20, 2);
+
 add_action('template_redirect', function(){
 
-    error_log('--- TEMPLATE REDIRECT ---');
-    error_log('IS 404: ' . (is_404() ? 'YES' : 'NO'));
+    if (!is_search()) return;
+
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+
+    // If search is under /en/ or /de/ etc.
+    if (preg_match('#^/[a-z]{2}/#', $uri)) {
+
+        $lang = $_GET['lang'] ?? MY_LANG;
+        $s    = get_query_var('s');
+
+        //$url = home_url('/?lang=' . $lang . '&s=' . urlencode($s));
+		$url = '/?lang=' . $lang . '&s=' . urlencode($s);
+        wp_redirect($url, 301);
+        exit;
+    }
 
 });
+
+add_filter('posts_clauses', function($clauses, $query){
+
+    global $wpdb;
+
+    if (!is_search()) return $clauses;
+
+    $term = $query->get('s');
+    if (!$term) return $clauses;
+
+    $like = '%' . $wpdb->esc_like($term) . '%';
+
+    // Boost title matches
+    $clauses['orderby'] = $wpdb->prepare("
+        (CASE 
+            WHEN {$wpdb->posts}.post_title LIKE %s THEN 1
+            ELSE 2
+        END),
+        {$wpdb->posts}.post_date DESC
+    ", $like);
+
+    return $clauses;
+
+}, 20, 2);
+
+function my_build_search_content($post_id){
+
+    $post = get_post($post_id);
+    if (!$post) return;
+
+    $blocks = parse_blocks($post->post_content);
+
+    $text = '';
+
+    foreach ($blocks as $block) {
+
+        $text .= my_extract_block_text($block) . ' ';
+    }
+
+    update_post_meta($post_id, '_search_content', trim($text));
+}
+
+function my_extract_block_text($block){
+
+    $name = $block['blockName'] ?? '';
+    $inner = $block['innerBlocks'] ?? [];
+    $content = '';
+
+    // ✅ ACCORDION / DETAILS (CRITICAL)
+	if ($name === 'core/details') {
+
+		$content = '';
+
+		// include summary (important!)
+		if (!empty($block['attrs']['summary'])) {
+			$content .= ' ' . $block['attrs']['summary'];
+		}
+
+		// take FIRST meaningful inner block
+		foreach ($inner as $child) {
+			$text = my_extract_block_text($child);
+			if (!empty(trim($text))) {
+				$content .= ' ' . $text;
+				// instead of break;
+				
+				if (strlen($content) < 200) {
+					$content .= ' ' . $text;
+				}
+				if (strlen($content) > 1000) {
+					break; // only first item
+				}
+			}
+		}
+
+		return trim($content);
+	}
+    // ✅ NORMAL TEXT BLOCKS
+    if (in_array($name, [
+        'core/paragraph',
+        'core/heading',
+        'core/list'
+    ], true)) {
+
+        return wp_strip_all_tags(implode(' ', $block['innerContent']));
+    }
+
+    // ❌ IGNORE NOISE BLOCKS
+    if (in_array($name, [
+        'core/gallery',
+        'core/image',
+        'core/cover',
+        'core/columns',
+        'core/group',
+        'core/spacer'
+    ], true)) {
+        return '';
+    }
+
+    // 🔁 RECURSIVE (important)
+    foreach ($inner as $child) {
+        $content .= my_extract_block_text($child) . ' ';
+    }
+
+    return $content;
+}
+/*
+add_action('wp_after_insert_post', function($post_id){
+
+    my_build_search_content($post_id);
+
+}, 30);
 */
+add_filter('posts_search', function($search, $wp_query){
+
+    global $wpdb;
+
+    if (!is_search()) return $search;
+
+    $term = $wp_query->get('s');
+    if (!$term) return $search;
+
+    $like = '%' . $wpdb->esc_like($term) . '%';
+
+    return $wpdb->prepare("
+        AND (
+            {$wpdb->posts}.post_title LIKE %s
+            OR EXISTS (
+                SELECT 1 FROM {$wpdb->postmeta}
+                WHERE post_id = {$wpdb->posts}.ID
+                AND meta_key = '_search_content'
+                AND meta_value LIKE %s
+            )
+        )
+    ", $like, $like);
+
+}, 20, 2);
+
+// ===========================
+// DEBUG
+// ===========================
+add_action('init', function(){
+
+    my_debug('System init', [
+        'mode' => my_hreflang_mode(),
+        'lang' => defined('MY_LANG') ? MY_LANG : null
+    ]);
+
+});
+
+function my_debug($message, $context = []){
+
+    if (!defined('WP_DEBUG') || !WP_DEBUG) return;
+    if (!defined('WP_DEBUG_LOG') || !WP_DEBUG_LOG) return;
+
+    $prefix = '[LANG ROUTER] ';
+
+    if (!empty($context)) {
+        $message .= ' | ' . json_encode($context);
+    }
+
+    error_log($prefix . $message);
+}
