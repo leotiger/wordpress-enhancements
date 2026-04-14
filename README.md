@@ -302,9 +302,7 @@ If needed, the system can be finetuned which could be necessary once you use SEO
 
 ### Known Issues and Workarounds
 
-If you create a page, save it first and change language after first save. Once you've changed the language you will need to reload the page to be able to 
-assign page equivalents in other languages correctly. I've spent already a lot of time on this, several days, and not sure if I will fix this. For my personal
-usage, that's alright, I know how to proceed, but it's something to work on to make it clean and robust. Same goes for override from linked pages, you have to establish and save first, before you can override (import) your content from the original (desired) language.
+We've improved with version 1.1.1 the Gutenberg admin behavior a lot when it comes to necessary saves via complete reload. Assigning a differnt language or assigning a new page equivalent in a different language still requieres a full page reload with save as it's currently not handled via ajax. This is necessary to guarantee the integrity of the underlying trid system that interconnects content of different types (posts, pages, etc.) with their language equivalents.
 
 ### Implementation in your instances
 
