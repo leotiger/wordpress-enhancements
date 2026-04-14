@@ -2,7 +2,7 @@
 /**
  * LSFLR: Language Switcher for Language Routing  – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1
  */
 
 /* -------------------------------------------------
@@ -36,6 +36,7 @@ function my_lsflr_get_languages() {
     return $langs;
 }
 
+/*
 function my_lsflr_translate_current_url($target_lang, $post_id = null){
 
     $current_url = home_url($_SERVER['REQUEST_URI']);
@@ -74,6 +75,53 @@ function my_lsflr_translate_current_url($target_lang, $post_id = null){
 		// test
 		return home_url('/' . trim($new_path, '/') . '/') . $query;
         // return home_url('/' . $new_path . '/') . $query;
+    }
+
+    return home_url('/' . $target_lang . '/' . $new_path . '/') . $query;
+}
+*/
+function my_lsflr_translate_current_url($target_lang, $post_id = null){
+
+    $current_url = home_url($_SERVER['REQUEST_URI']);
+    $langs = my_languages();
+    $source = my_source_language();
+
+    $parsed = parse_url($current_url);
+    $path = trim($parsed['path'] ?? '', '/');
+    $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+
+    $segments = explode('/', $path);
+
+    if (!empty($segments[0]) && in_array($segments[0], $langs)) {
+        array_shift($segments);
+    }
+
+    $new_path = implode('/', $segments);
+
+    // =============================
+    // 🔹 SEARCH (FIX)
+    // =============================
+    if (is_search()) {
+
+        $s = get_query_var('s');
+
+        return home_url('/?lang=' . $target_lang . '&s=' . urlencode($s));
+    }
+
+    // =============================
+    // 🔹 SINGULAR
+    // =============================
+    if (is_singular() && $post_id) {
+
+        $url = get_permalink($post_id);
+        return $url . $query;
+    }
+
+    // =============================
+    // 🔹 NON-SINGULAR
+    // =============================
+    if ($target_lang === $source) {
+        return home_url('/' . trim($new_path, '/') . '/') . $query;
     }
 
     return home_url('/' . $target_lang . '/' . $new_path . '/') . $query;
