@@ -126,7 +126,7 @@ This solution provides:
 
 This language router is fully compatible with WordPress Full Site Editing (FSE) and relies on the native block template system (`wp_template`, `wp_template_part`, patterns) rather than classic PHP templates.
 
-Instead of duplicating themes or using separate template hierarchies per language, the router dynamically selects the appropriate templates and content based on the active language (`MY_LANG`).
+Instead of duplicating themes or using separate template hierarchies per language, the router dynamically selects the appropriate templates and content based on the active language for WP intrincic workflows based on  (`MY_LANG`). This is implemented right now for WP search, one of the intrinsic workflows of WP. For post types like pages or posts you have to assign language specific templates prepared by you to guarantee that your content is encapsuñated with the language specific container.
 
 ---
 
