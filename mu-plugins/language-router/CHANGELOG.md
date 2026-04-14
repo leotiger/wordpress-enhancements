@@ -28,6 +28,7 @@ All notable changes to the Language Router will be documented in this file.
 - Structured search indexing via `_search_content` post meta
 - Gutenberg block content extraction for search (paragraphs, headings, lists)
 - Support for accordion (`core/details`) blocks in search (summary + first meaningful content)
+- Compatibility with some common SEO plugins (YOAST, RANK_MATH, AIOSEO, SEOPRESS) to avoid duplicated canonical links (needs testing)
 
 ---
 
