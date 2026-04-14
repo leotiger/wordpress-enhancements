@@ -104,7 +104,7 @@ Here we provide two mu-plugins. The first could be abstracted into classes and d
 
 ---
 
-## 🌍 Multilingual Router + Language Switcher (LSFLR)
+## 🌍 Language Router + Language Switcher (LSFLR)
 
 A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
 
@@ -120,6 +120,7 @@ This solution provides:
 * Allows to run the instance with primary language set to en_US, for example, but serve content in Catalan and delegate en_US to a virtual subfolder (slug), e.g. /en
   (This seems absurd, but for plugins like Vik Booking which behaves better when it runs for admin in en_US that's vital, we use a .cat domain and it would
   be overly absurd to serve English as the first language, has and had to serve Catalan first.)
+* Language Router uses the template system to provide the language environment that encapsulates content in a given language.
 
 ### ✨ Features
 
@@ -311,6 +312,8 @@ The code is provided as a basis to adapt it to your needs. A reflection of this 
 Those won't be of any use for you, I kept them simply as an example. The code hasn't been tested in conjunction with other plugins apart from the ones I'm using.
 This means that SEO plugins as well as many others might interfere and request solutions. If you test the language routing offered on a clean system, it should work.
 For me it works with some 10, 12 additional plugins.
+
+The Language Router folder includes a Changelog which offers more information on fixes and improvements.
 
 ---
 
