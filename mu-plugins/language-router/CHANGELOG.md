@@ -4,6 +4,12 @@ All notable changes to the Language Router will be documented in this file.
 
 ## [Unreleased]
 
+### UX Improvements
+- Implies added fuctionality sometimes
+
+### Technical Notes
+- Hints and other important information
+
 ### Added
 - New feature X
 
@@ -21,6 +27,10 @@ All notable changes to the Language Router will be documented in this file.
 - Enhanced admin language selector UX: selecting a language now prompts for confirmation, saves the post via Gutenberg API, and reloads automatically
 - Added unified change handling for primary language selector and translation dropdowns
 - Removed requirement for manual page reload to apply language changes
+
+### ⚙️ Technical Notes
+- The underlying trid system requires full page saves via reload at the current state the assure consistency of the language equivalents for a post type
+  The use receive now a hint which avoids usage confussion and improves UX.
 
 ---
 
