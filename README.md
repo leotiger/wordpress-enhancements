@@ -104,7 +104,7 @@ Here we provide two mu-plugins. The first could be abstracted into classes and d
 
 ---
 
-## 🌍 Language Router + Language Switcher (LSFLR)
+### 🌍 Language Router + Language Switcher (LSFLR)
 
 A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
 
@@ -122,200 +122,180 @@ This solution provides:
   be overly absurd to serve English as the first language, has and had to serve Catalan first.)
 * Language Router uses the template system to provide the language environment that encapsulates content in a given language.
 
-### ✨ Features
+## 🧩 Integration with WordPress FSE (Full Site Editing)
 
-#### 🌐 Language Routing
+This language router is fully compatible with WordPress Full Site Editing (FSE) and relies on the native block template system (`wp_template`, `wp_template_part`, patterns) rather than classic PHP templates.
 
-* Clean URLs with language prefix:
-
-  ```
-  /de/
-  /fr/
-  /es/
-  ```
-* Default language without prefix (e.g. `/`)
-* Automatic language detection from URL
-
-### 🔗 Translation System (TRID-based)
-
-* Each post/page belongs to a translation group (`_trid`)
-* Each translation stores its own language (`_lang`)
-* No dependency on external translation plugins
-
-### 🧠 Locale Handling (Critical)
-
-* Forces WordPress locale early (`plugins_loaded`)
-* Ensures compatibility with plugins that rely on locale at init time
-* Required for correct translations in Vik Booking itself (our use case)
-
-(Vik Booking offers to configure and use shortcodes but the language setting is not respected, at least in the current version of WP at writing. We may be wrong and feel invited to correct us on that.
-
-### 🔎 SEO Ready
-
-* Correct `<link rel="canonical">` per language
-* Full `<link rel="alternate" hreflang="...">` support:
-
-  * singular pages
-  * archives
-  * pagination
-* Clean URL structure → no duplicate content
-
-### 🔁 Context-Aware Language Switcher
-
-* Preserves:
-
-  * current page
-  * pagination (`/page/2`)
-  * archives (`/category/...`)
-  * query parameters (e.g. booking data)
-
-Example:
-
-```
-/de/category/news/page/3
-→ /en/category/news/page/3
-```
-
-### ⚡ Performance
-
-* Optional DB index on `_lang` for fast queries
-* Compatible with object caching
-* Lightweight (no runtime parsing, no DOM manipulation)
-
-### 🧩 Components
-
-#### 1. Language Router
-
-Handles:
-
-* language detection
-* rewrite rules
-* query filtering
-* locale switching
-
-### 2. Language Switcher (LSFLR)
-
-* Gutenberg block + PHP render
-* Object-based (no DOM parsing)
-* Fully extensible
-* Supports:
-
-  * label / icon / custom display
-  * dropdown / dropup
-
-### 📦 Usage
-
-#### Gutenberg
-
-Use block:
-
-```
-LSFLR Switcher
-```
-
-#### PHP
-
-```php
-echo my_lsflr_render_switcher();
-```
-
-### ⚙️ Configuration
-
-#### Define primary language
-
-```php
-add_filter('my_primary_language', function(){
-    return 'ca';
-});
-```
-
-### Supported languages
-
-Derived automatically from:
-
-* installed WordPress languages
-* * primary language fallback
-
-
-### 🧠 How it works
-
-#### Routing
-
-```
-/de/page → lang = de
-/page    → lang = default (ca)
-```
-
-#### Content filtering
-
-Queries are automatically restricted to:
-
-```
-_lang = current language
-```
-
-#### Translation linking
-
-Posts are connected via:
-
-```
-_trid = translation group
-```
-
-### ⚠️ Limitations
-
-This system is intentionally designed to stay **simple and predictable**.
-
-* Taxonomy slugs (categories, tags) are **not translated**
-* Archive structures are identical across languages
-* Missing translations fall back to source content (no automatic redirect)
-* No automatic machine translation or sync
-
-
-### 🎯 Intended Use Case
-
-Best suited for:
-
-* small to medium websites (≈ up to a few thousand posts)
-* projects requiring **full control over URLs and logic**
-* environments where heavy multilingual plugins are unnecessary
-
-### 🚀 Why this approach
-
-Instead of abstracting everything, this system:
-
-* keeps logic transparent
-* avoids hidden behavior
-* integrates cleanly with custom workflows
-
-It is especially useful when working with Vik Booking, where timing and locale handling are critical.
-
-### 🧱 Philosophy
-
-> Do less, but do it correctly.
-
-* no overengineering
-* no unnecessary abstraction
-* predictable behavior over feature bloat
-
-If needed, the system can be finetuned which could be necessary once you use SEO and caching plutins, etc. (SEO, caching, routing rules), but remains intentionally lightweight at its core.
-
-### Known Issues and Workarounds
-
-We've improved with version 1.1.1 the Gutenberg admin behavior a lot when it comes to necessary saves via complete reload. Assigning a differnt language or assigning a new page equivalent in a different language still requieres a full page reload with save as it's currently not handled via ajax. This is necessary to guarantee the integrity of the underlying trid system that interconnects content of different types (posts, pages, etc.) with their language equivalents.
-
-### Implementation in your instances
-
-The code is provided as a basis to adapt it to your needs. A reflection of this is the languages directory which contains language .mo files for Vik Booking.
-Those won't be of any use for you, I kept them simply as an example. The code hasn't been tested in conjunction with other plugins apart from the ones I'm using.
-This means that SEO plugins as well as many others might interfere and request solutions. If you test the language routing offered on a clean system, it should work.
-For me it works with some 10, 12 additional plugins.
-
-The Language Router folder includes a Changelog which offers more information on fixes and improvements.
+Instead of duplicating themes or using separate template hierarchies per language, the router dynamically selects the appropriate templates and content based on the active language (`MY_LANG`).
 
 ---
 
-## MSLS
+## 🧠 Core Concept
+
+WordPress FSE stores templates and template parts as **database entities**:
+
+- Templates → `wp_template`
+- Template parts (header, footer, etc.) → `wp_template_part`
+- Patterns → reusable block structures
+
+This router **hooks into the template resolution layer** and swaps templates dynamically per language.
+
+Example:
+
+- `search` → default language
+- `search-en` → English
+- `search-de` → German
+
+The router detects the current language and loads the corresponding template if it exists.
+
+---
+
+## 📄 Language-Specific Templates
+
+For each supported language, you can create variants of core templates:
+
+| Template Type | Default | English | German |
+|---------------|--------|--------|--------|
+| Search        | `search` | `search-en` | `search-de` |
+| Page          | `page` | `page-en` | `page-de` |
+| Archive       | `archive` | `archive-en` | `archive-de` |
+
+These templates are created via:
+
+> **Appearance → Editor → Templates**
+
+and stored in the database (not as files).
+
+---
+
+## 🧱 Template Parts (Header, Footer, etc.)
+
+FSE relies heavily on reusable template parts:
+
+- Header
+- Footer
+- Navigation
+- Sidebar (if used)
+
+To achieve full multilingual control, you should provide **language-specific template parts**, for example:
+
+- `header-en`
+- `footer-en`
+- `navigation-en`
+
+Then reference them inside your language-specific templates.
+
+---
+
+## 🧩 Patterns (Recommended)
+
+Patterns are used for:
+
+- Navigation structures
+- Footer layouts
+- Reusable sections
+
+For multilingual setups:
+
+- Create language-specific patterns
+- Or ensure patterns are language-neutral where possible
+
+---
+
+## 🔍 Search Templates (Special Case)
+
+Search is handled explicitly by the router:
+
+- The router intercepts template resolution using `get_block_templates`
+- It attempts to load `search-{lang}` dynamically
+- Falls back to default `search` if no language-specific template exists
+
+This allows full control over:
+
+- Layout
+- Labels
+- Language-specific UI
+
+---
+
+## ⚠️ Important Notes
+
+### 1. No Automatic Duplication
+Templates and template parts are **not automatically translated or duplicated**.
+
+You must create language variants manually where needed.
+
+---
+
+### 2. Fallback Behavior
+If a language-specific template does not exist:
+
+- WordPress falls back to the default template
+- This ensures graceful degradation
+
+---
+
+### 3. Separation of Concerns
+
+- **Routing layer (this plugin)** → decides *which language*
+- **FSE templates** → decide *how it looks*
+
+---
+
+### 4. Database-Based System
+
+All templates are stored in:
+
+- `wp_posts` (post type: `wp_template`, `wp_template_part`)
+
+There are **no physical template files required**.
+
+---
+
+## ✅ Recommended Setup
+
+For each language:
+
+- Provide at least:
+  - `search-{lang}`
+  - `header-{lang}`
+  - `footer-{lang}`
+  - `navigation-{lang}`
+
+- Optionally:
+  - `page-{lang}`
+  - `archive-{lang}`
+
+---
+
+## 💡 Strategy
+
+You don’t need to duplicate everything.
+
+A common approach:
+
+- Keep structure identical
+- Only localize:
+  - text
+  - labels
+  - navigation
+
+---
+
+## 🚀 Summary
+
+This language router:
+
+- Uses WordPress FSE as-is (no custom rendering engine)
+- Extends template resolution instead of replacing it
+- Keeps templates in the database
+- Enables clean, scalable multilingual setups
+
+👉 The more your templates follow FSE conventions, the smoother the integration.
+
+---
+
+### MSLS
 
 We use (not anymore):
 
