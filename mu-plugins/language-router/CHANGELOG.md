@@ -24,7 +24,7 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
-## [1.1] - 2026-04-14
+## [1.1.0] - 2026-04-14
 
 ### 🚀 Added
 - Language-aware search using `?lang=` parameter (e.g. `/?lang=en&s=query`)
