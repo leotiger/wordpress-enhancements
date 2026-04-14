@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1
+ * Version: 1.1.1
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -770,7 +770,7 @@ add_action('add_meta_boxes', function(){
 
         $cur = my_get_lang($post->ID);
 
-        echo '<select name="my_lang">';
+        echo '<select name="my_lang" class="my-lr-lang" id="my_lr_lang">';
         foreach(my_languages() as $l){
             echo '<option value="'.$l.'" '.selected($cur,$l,false).'>'.strtoupper($l).'</option>';
         }
@@ -1024,7 +1024,39 @@ add_action('admin_footer', function(){
 		}).then(()=>location.reload());
 
 	});
+	
+	document.addEventListener('change', function(e){
 
+		//if (!e.target.classList.contains('my-lr-lang')) return;
+		const isLangSelect = e.target.classList.contains('my-lr-lang');
+		const isInsideTrans = e.target.closest('#my_trans');
+
+		if (!isLangSelect && !isInsideTrans) return;
+		
+		if(typeof wp === 'undefined' || !wp.data) {
+			location.reload();
+			return;
+		}
+
+		const editor = wp.data.dispatch('core/editor');
+		const select = wp.data.select('core/editor');
+
+		if (!confirm('Change language or relationship? The page will reload.')) return;
+
+		// Trigger save
+		editor.savePost();
+
+		// Wait until save finishes
+		const check = setInterval(function(){
+
+			if (!select.isSavingPost() && !select.isAutosavingPost()) {
+				clearInterval(check);
+				location.reload();
+			}
+
+		}, 300);
+
+	});
 	// Force reload on page creation to assure language features working
 	(function(){
 
