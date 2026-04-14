@@ -15,6 +15,15 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.1] - 2026-04-15
+
+### 💡 UX Improvements
+- Enhanced admin language selector UX: selecting a language now prompts for confirmation, saves the post via Gutenberg API, and reloads automatically
+- Added unified change handling for primary language selector and translation dropdowns
+- Removed requirement for manual page reload to apply language changes
+
+---
+
 ## [1.1] - 2026-04-14
 
 ### 🚀 Added
