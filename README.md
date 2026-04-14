@@ -295,8 +295,8 @@ This language router:
 
 ---
 
-++MSLS is abandoned. It's in here because it may serve as an intersting code for Wordpress sites using Multisite configuration for Wordpress, which is not our case anymore.
-That said, don't try to use this with our Language Router, the two approaches to deliver a webiste for several languages are completly different.++
+**MSLS is abandoned. It's in here because it may serve as an intersting code for Wordpress sites using Multisite configuration for Wordpress, which is not our case anymore.
+That said, don't try to use this with our Language Router, the two approaches to deliver a webiste for several languages are completly different.**
 
 ### MSLS
 
