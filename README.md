@@ -96,7 +96,7 @@ Building a multilingual website in WordPress is often an exercise in dependency:
 
 - Small website  
 - Foster the own language skills  
-- Manual translations  
+- Manual translations (use artificial inteligence to support you...)
 
 Browsers already provide automatic translation for languages outside a user’s skill set, and with modern AI tools, generating translations is no longer the real challenge. What actually matters is having a clear and reliable way to switch between languages. For small websites, content is usually created gradually over time, often starting with no more than 20 or 30 pages and posts. In this context, using large multilingual plugins to manage a few hundred pages is often unnecessary, heavy, and restrictive.
 
