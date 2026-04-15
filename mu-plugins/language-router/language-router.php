@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.1
+ * Version: 1.1.2
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -15,28 +15,46 @@ require_once __DIR__ . '/lang-switcher-for-language-router.php';
 
 add_action('init', function(){
 
+	// stricter callback could work as well
+	/*
+	'auth_callback' => function($allowed, $meta_key, $post_id) {
+        return current_user_can('edit_post', $post_id);
+    },
+	*/
     register_post_meta('', '_lang', [
         'type' => 'string',
         'single' => true,
         'show_in_rest' => true,
+		'auth_callback' => function() {
+			return current_user_can('edit_posts');
+		},
     ]);
 
     register_post_meta('', '_trid', [
         'type' => 'string',
         'single' => true,
         'show_in_rest' => true,
+		'auth_callback' => function() {
+			return current_user_can('edit_posts');
+		},
     ]);
 
-    register_post_meta('', '_source_updated_at', [
-        'type' => 'number',
-        'single' => true,
-        'show_in_rest' => true,
-    ]);
-
+	register_post_meta('', '_source_updated_at', [
+		'type' => 'number',
+		'single' => true,
+		'show_in_rest' => true,
+		'auth_callback' => function() {
+			return current_user_can('edit_posts');
+		},
+	]);
+	
     register_post_meta('', '_translation_source_updated_at', [
         'type' => 'number',
         'single' => true,
         'show_in_rest' => true,
+		'auth_callback' => function() {
+			return current_user_can('edit_posts');
+		},
     ]);
 
 });
@@ -78,6 +96,23 @@ function my_languages(){
 	return apply_filters('my_languages_list', array_values(array_unique($langs)));
     //return array_values(array_unique($langs));
 }
+
+// =========================================
+// ALLOW TO ACCESS NAVIGATION MENUS QUICKLY
+// =========================================
+add_action('admin_menu', function(){
+
+    add_menu_page(
+        'Navigation (List)',
+        'Navigation (List)',
+        'edit_posts',
+        'edit.php?post_type=wp_navigation',
+        '',
+        'dashicons-menu',
+        20
+    );
+});
+
 
 // =============================
 // LANGUAGE DETECTION
@@ -844,7 +879,7 @@ add_action('add_meta_boxes', function(){
 // =============================
 add_action('wp_after_insert_post', function($post_id, $post){
 
-    if (!in_array($post->post_type, ['post','page'])) return;
+    if (!in_array($post->post_type, ['post','page','wp_navigation'])) return;
     if (wp_is_post_revision($post_id)) return;
     if (wp_is_post_autosave($post_id)) return;
     if (!current_user_can('edit_post', $post_id)) return;
@@ -973,12 +1008,18 @@ add_action('wp_ajax_my_import_translation', function(){
 
 	$original_lang = my_get_lang($target_id);
 
+	$content = $source->post_content;
+
+	// Normalize Gutenberg blocks
+	$blocks = parse_blocks($content);
+	$content = serialize_blocks($blocks);
+
 	wp_update_post([
 		'ID'           => $target_id,
 		'post_title'   => $source->post_title,
-		'post_content' => $source->post_content
-	]);
-
+		'post_content' => $content,
+	]);	
+	
 	// restore language
 	my_set_lang($target_id, $original_lang);	
 
@@ -1179,7 +1220,7 @@ add_action('quick_edit_custom_box', function($column_name, $post_type){
 
     if ($column_name !== 'lang') return;
 
-    if (!in_array($post_type, ['post','page'])) return;
+    if (!in_array($post_type, ['post','page','wp_navigation'])) return;
 
     ?>
     <fieldset class="inline-edit-col">
