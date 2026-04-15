@@ -303,6 +303,11 @@ This language router:
 
 👉 The more your templates follow FSE conventions, the smoother the integration.
 
+## Changelog
+
+The Language Router offers now a CHANGELOG added to the source as the complexity of the solution requires to add, fix and improve features and workflows available out
+of the box. We appreciate feedback. Language Routing and Translation is heavy stuff.
+
 ---
 
 **MSLS is abandoned. It's in here because it may serve as an intersting code for Wordpress sites using Multisite configuration for Wordpress, which is not our case anymore.
