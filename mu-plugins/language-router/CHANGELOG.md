@@ -29,7 +29,7 @@ All notable changes to the Language Router will be documented in this file.
 - Removed requirement for manual page reload to apply language changes
 
 ### ⚙️ Technical Notes
-- The underlying trid system requires full page saves via reload at the current state the assure consistency of the language equivalents for a post type
+- The underlying trid system requires full page saves via reload at the current state to assure consistency of the language equivalents for a post type
   The use receive now a hint which avoids usage confussion and improves UX.
 
 ---
