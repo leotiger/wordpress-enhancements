@@ -2,7 +2,7 @@
 /**
  * LSFLR: Language Switcher for Language Routing  – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.1
+ * Version: 1.1.2
  */
 
 /* -------------------------------------------------
@@ -19,19 +19,21 @@ function my_lsflr_get_languages() {
     if (empty($translations)) return [];
 
     $langs = [];
+	
+	foreach ($translations as $lang => $id) {
 
-    foreach ($translations as $lang => $id) {
+		// 🔥 ONLY PUBLISHED
+		if (get_post_status($id) !== 'publish') {
+			continue;
+		}
 
-        $langs[] = [
-            'code'    => $lang,
-			// test
+		$langs[] = [
+			'code'    => $lang,
 			'url' => my_lsflr_translate_current_url($lang, $id),
-            //'url'     => get_permalink($id),
-            //'label'   => strtoupper($lang),
 			'label' => my_language_label($lang),
-            'current' => ($lang === MY_LANG),
-        ];
-    }
+			'current' => ($lang === MY_LANG),
+		];
+	}	
 
     return $langs;
 }
