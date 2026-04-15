@@ -152,13 +152,15 @@ The router detects the current language and loads the corresponding template if 
 
 ## 📄 Language-Specific Templates
 
-For each supported language, you can create variants of core templates:
+In WP for FSE you have to consider two tyes of templates: intrinsic templates tied to WP intrinsic workflows like the Search block and search results 
+and content templates for posts and pages for which the editor for Themes under Appearance allows to create Customn templates.
+For intrincis templates Language Router supports right now Search templates that have to comply with the following equivalances:
 
 | Template Type | Default | English | German |
 |---------------|--------|--------|--------|
 | Search        | `search` | `search-en` | `search-de` |
 
-These templates are created via:
+The mentioned theme templates are created via:
 
 > **Appearance → Editor → Templates** for post types like posts, pages using custom templates and
 > via **Appearance -> Theme Options** for WP intrinsic workflows like Search
@@ -166,7 +168,9 @@ These templates are created via:
 and stored in the database (not as files).
 
 Once created, you can edit and adapt the templates to your language specific needs. Assigning templates to posts and pages is easy via the Gutenberg Editor.
-Adapting the templates to roll down all and include all their necessary language specific parts and patterns is a bit ardous... and requires work. Once you
+Templates for WP intrinsic workflows are loades automatically if created, don't forget to edit and adapt.
+
+Adapting the templatess to roll down all and include all their necessary language specific parts and patterns is a bit ardous... and requires work. Once you
 are familiar with the workflow after a learning curve, you dispose of a WP instance with multi-language support.
 
 At the time of writing there's only one suport for "instrinsic" Wordpress templates, e.g. Search. Let's repeat, for content types like postsn and pages you simply create
