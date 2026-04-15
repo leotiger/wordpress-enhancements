@@ -197,21 +197,6 @@ Then reference them inside your language-specific templates.
 
 ---
 
-## 🧩 Patterns (Recommended)
-
-Patterns are used for:
-
-- Navigation structures
-- Footer layouts
-- Reusable sections
-
-For multilingual setups:
-
-- Create language-specific patterns
-- Or ensure patterns are language-neutral where possible
-
----
-
 ## 🔍 Search Templates (Special Case)
 
 Search is handled explicitly by the router:
