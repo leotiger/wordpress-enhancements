@@ -21,6 +21,32 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.2] - 2026-04-15
+
+### UX Improvements
+- Reduced risk of inconsistent state when switching language or translation relationships in the editor
+- Added Quick Edit support for language assignment on posts, pages, and navigation items for faster management
+
+### Technical Notes
+- Explicit REST permission handling added for all internal meta fields (`_lang`, `_trid`, `_source_updated_at`, `_translation_source_updated_at`)
+- Prevents intermittent Gutenberg save failures caused by missing `auth_callback`
+- Aligns Language Router meta handling with WordPress REST and block editor requirements
+
+### Added
+- Quick Edit language selector for `post`, `page`, and `wp_navigation`
+- Language awareness extended to navigation entities
+
+### Changed
+- Editor change detection for language and translation fields now uses centralized event handling (including elements within `#my_trans`)
+- Save flow now ensures data persistence before reload
+
+### Fixed
+- Intermittent error: *“Sorry, you are not allowed to edit the _source_updated_at custom field”* related with not handling permissions for auth_callback
+- Language switcher now ignores non-published content when resolving translations
+- Prevented accidental state loss when changing language without saving first
+
+---
+
 ## [1.1.1] - 2026-04-15
 
 ### 💡 UX Improvements
