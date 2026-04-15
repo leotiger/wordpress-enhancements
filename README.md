@@ -268,27 +268,16 @@ For each language:
 
 - Provide at least:
   - `search-{lang}`
-  - `header-{lang}`
-  - `footer-{lang}`
-  - `navigation-{lang}`
+ 
+using the Theme Options under Appearance if you want to use the Search Block.
 
-- Optionally:
-  - `page-{lang}`
-  - `archive-{lang}`
+The rest of the the templates and template parts can be provided using the Theme Editor for language specific
 
----
-
-## 💡 Strategy
-
-You don’t need to duplicate everything.
-
-A common approach:
-
-- Keep structure identical
-- Only localize:
-  - text
-  - labels
-  - navigation
+  - `headers`
+  - `footers`
+  - `navigations`
+  - `sidebars`
+  - `page, post and other templates`
 
 ---
 
