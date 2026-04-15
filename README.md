@@ -162,9 +162,14 @@ For each supported language, you can create variants of core templates:
 
 These templates are created via:
 
-> **Appearance → Editor → Templates**
+> **Appearance → Editor → Templates** for post types like posts, pages using custom templates and
+> via **Appearance -> Theme Options** for WP intrinsic workflows like Search
 
 and stored in the database (not as files).
+
+Once created, you can edit and adapt the templates to your language specific needs. Assigning templates to posts and pages is easy via the Gutenberg Editor.
+Adapting the templates to roll down all and include all their necessary language specific parts and patterns is a bit ardous... and requires work. Once you
+are familiar with the workflow after a learning curve, you dispose of a WP instance with multi-language support.
 
 ---
 
