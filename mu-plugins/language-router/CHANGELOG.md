@@ -2,7 +2,7 @@
 
 All notable changes to the Language Router will be documented in this file.
 
-## [Unreleased]
+## [Log explanation]
 
 ### UX Improvements
 - Implies added fuctionality sometimes
