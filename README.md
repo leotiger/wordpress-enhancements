@@ -173,8 +173,8 @@ Templates for WP intrinsic workflows are loades automatically if created, don't 
 Adapting the templatess to roll down all and include all their necessary language specific parts and patterns is a bit ardous... and requires work. Once you
 are familiar with the workflow after a learning curve, you dispose of a WP instance with multi-language support.
 
-At the time of writing there's only one suport for "instrinsic" Wordpress templates, e.g. Search. Let's repeat, for content types like postsn and pages you simply create
-your templates within the editor available under Appearance and you assing your template to the content in the page and post editor.
+At the time of writing there's only one "instrinsic" Wordpress templates supported: Search, which is tied to the Search Block. Let's repeat, for content types like posts and pages you simply create your templates within the editor available under Appearance and you assing your template to the content in the page and post editor.
+Once I get to posts overview pages I will probably have to add support for some more standard templates.
 
 ---
 
