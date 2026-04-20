@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.2
+ * Version: 1.1.3
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -299,9 +299,53 @@ add_action('init', function () {
     if (file_exists($mofile)) {
         load_textdomain('vikbooking', $mofile);
     }
+	// example for Complianz-GDPR
+    $mofile = WPMU_PLUGIN_DIR . '/language-router/languages/complianz-gdpr-' . $locale . '.mo';
+    if (file_exists($mofile)) {
+        load_textdomain('complianz-gdpr', $mofile);
+    }
 
 }, 1);
 
+// =============================
+// Test together with adapted template_redirect
+// =============================
+add_action('init', function(){
+
+    if (is_admin()) return;
+
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    $path = parse_url($uri, PHP_URL_PATH);
+
+    // 🔹 SEARCH redirect
+    if (isset($_GET['s']) && preg_match('#^/[a-z]{2}/#', $path)) {
+        $lang = $_GET['lang'] ?? MY_LANG;
+        $s = $_GET['s'] ?? '';
+		my_debug('SEARCH REDIRECT: /?lang=' . $lang . '&s=' . $s);
+        wp_redirect('/?lang=' . $lang . '&s=' . urlencode($s), 301);
+        exit;
+    }
+
+    // 🔹 HOMEPAGE redirect
+    //if ($path === '/' || $path === '') {
+	if (($path === '/' || $path === '') && empty($_GET['s'])) {
+
+        $front_id = get_option('page_on_front');
+        if (!$front_id) return;
+
+        $translations = my_get_translations($front_id);
+
+        if (!empty($translations[MY_LANG])) {
+            $target = get_permalink($translations[MY_LANG]);
+
+            if (untrailingslashit($target) !== untrailingslashit(home_url('/'))) {
+                wp_redirect($target, 302);
+                exit;
+            }
+        }
+    }
+
+}, 0);
 // =============================
 // REWRITE
 // =============================
@@ -667,34 +711,44 @@ function my_get_posts($args = [], $fallback = false) {
 // =============================
 // REDIRECT + FALLBACK
 // =============================
-
 add_action('template_redirect', function(){
 
+    if (is_admin()) return;
     if (is_search()) return; // 🔥 CRITICAL
-
     if (!is_singular()) return;
+
+    if (MY_LANG === my_source_language()) return;
 
     global $post;
     if (!$post) return;
 
     $translations = my_get_translations($post->ID);
 
-    if (MY_LANG === my_source_language()) return;
+    // 🚫 No translation available → activate fallback
+    if (empty($translations[MY_LANG])) {
 
-    if (!empty($translations[MY_LANG])){
-
-        if ((int)$translations[MY_LANG] !== (int)$post->ID){
-            wp_redirect(get_permalink($translations[MY_LANG]), 301);
-            exit;
-        }
-
-    } else {
         if (!defined('MY_LANG_FALLBACK_ACTIVE')) {
             define('MY_LANG_FALLBACK_ACTIVE', true);
         }
+
+        return;
     }
 
-});
+    $target_id = (int)$translations[MY_LANG];
+
+    // 🚫 Already correct → no redirect
+    if ($target_id === (int)$post->ID) return;
+
+    $target_url = get_permalink($target_id);
+
+    // 🚫 Extra safety (avoid weird edge cases)
+    if (!$target_url) return;
+
+    wp_redirect($target_url, 301);
+    exit;
+
+}, 1);
+
 // =============================
 // HOMEPAGE HANDLING
 // =============================
@@ -761,13 +815,13 @@ add_filter('render_block', function($block_content, $block){
         $block_content,
         1
     );
-
+	/*
     my_debug('Site logo TRID link', [
         'lang' => MY_LANG,
         'target_id' => $target_id,
         'url' => $target_url
     ]);
-
+	*/
     return $block_content;
 
 }, 20, 2);
@@ -874,6 +928,67 @@ add_action('add_meta_boxes', function(){
 
 });
 
+// ===================================
+// TEMPLATE HANDLING
+// ===================================
+function my_resolve_template_for_lang($post, $lang){
+
+    if (!$post || !$lang) return null;
+
+    // Decide base type
+    $type = $post->post_type;
+
+    if ($type === 'page') {
+        $base = 'page';
+    } elseif ($type === 'post') {
+        $base = 'single';
+    } else {
+        return null;
+    }
+
+    // Build slug: page-en, single-de, etc.
+    return $base . '-' . $lang;
+}
+
+function my_template_exists($slug){
+
+    $tpl = get_page_by_path($slug, OBJECT, 'wp_template');
+
+    return !empty($tpl);
+}
+
+function my_assign_template_if_needed($post_id, $post, $lang){
+
+    // Only for supported types
+    if (!in_array($post->post_type, ['post','page'])) return;
+
+    $template_slug = my_resolve_template_for_lang($post, $lang);
+
+    if (!$template_slug) return;
+
+    // Check existence
+    if (!my_template_exists($template_slug)) return;
+
+    // Current assigned template
+    $current = get_post_meta($post_id, '_wp_page_template', true);
+
+    // 🔥 KEY RULE
+    // Only assign if:
+    // - no template set
+    // - OR default
+    if (!empty($current) && $current !== 'default') {
+        return;
+    }
+
+    update_post_meta($post_id, '_wp_page_template', $template_slug);
+
+    my_debug('Template auto-assigned', [
+        'post_id' => $post_id,
+        'template' => $template_slug
+    ]);
+}
+
+
 // =============================
 // SAVE HANDLER
 // =============================
@@ -897,6 +1012,44 @@ add_action('wp_after_insert_post', function($post_id, $post){
     }
 
     $lang = my_get_lang($post_id);
+
+    // =============================
+    // 🔹 TEMPLATE AUTO ASSIGNMENT
+    // =============================
+	if (!in_array($post->post_type, ['post','page'], true)) {
+		return;
+	}
+    $previous_lang = get_post_meta($post_id, '_lang_previous', true);
+    update_post_meta($post_id, '_lang_previous', $lang);
+
+    if ($previous_lang && $previous_lang !== $lang) {
+
+        if (in_array($post->post_type, ['post','page'])) {
+
+            // Resolve template slug
+            $base = ($post->post_type === 'page') ? 'page' : 'single';
+            $template_slug = $base . '-' . $lang;
+
+            // Check if template exists (FSE)
+            $tpl = get_page_by_path($template_slug, OBJECT, 'wp_template');
+
+            if ($tpl) {
+
+                $current = get_post_meta($post_id, '_wp_page_template', true);
+
+                // Only assign if default or empty
+                if (empty($current) || $current === 'default') {
+
+                    update_post_meta($post_id, '_wp_page_template', $template_slug);
+
+                    my_debug('Template auto-assigned in editor', [
+                        'post_id' => $post_id,
+                        'template' => $template_slug
+                    ]);
+                }
+            }
+        }
+    }
 
     // =============================
     // 🔹 TRID
@@ -943,8 +1096,31 @@ add_action('wp_after_insert_post', function($post_id, $post){
 
         $group_ids[] = $target_id;
     }
+	
+	// =============================
+	// 🔹 EXPAND TRANSLATION GROUP (GRAPH COMPLETION)
+	// =============================
 
-    $group_ids = array_unique($group_ids);
+	$expanded_ids = $group_ids;
+
+	foreach ($group_ids as $pid) {
+
+		$existing = my_get_translations($pid);
+
+		if (empty($existing)) continue;
+
+		foreach ($existing as $existing_id) {
+
+			if (!in_array($existing_id, $expanded_ids)) {
+				$expanded_ids[] = $existing_id;
+			}
+		}
+	}
+
+	// Replace group_ids with full graph
+	$group_ids = array_unique($expanded_ids);
+	
+    //$group_ids = array_unique($group_ids);
 
     $trid = null;
 
@@ -973,10 +1149,14 @@ add_action('wp_after_insert_post', function($post_id, $post){
         }
     }
 
-	// Search Engine
-	my_build_search_content($post_id);
-	
+    // =============================
+    // 🔹 SEARCH INDEX
+    // =============================
+
+    my_build_search_content($post_id);
+
 }, 10, 2);
+
 
 // =============================
 // AJAX IMPORT
@@ -1356,7 +1536,7 @@ function my_lang_permalink($url, $post){
 add_action('wp_head', function(){
 
     if (my_hreflang_mode() !== 'custom') {
-        my_debug('Hreflang skipped (plugin mode)');
+        //my_debug('Hreflang skipped (plugin mode)');
         return;
     }
 	
@@ -1368,17 +1548,17 @@ add_action('wp_head', function(){
         global $post;
 
         if (!$post) {
-            my_debug('Hreflang aborted: no post');
+            //my_debug('Hreflang aborted: no post');
             return;
         }
 
         $translations = my_get_translations($post->ID);
-
+		/*
         my_debug('Hreflang singular', [
             'post_id' => $post->ID,
             'translations' => $translations
         ]);		
-		
+		*/
         if (empty($translations)) return;
 
         foreach($translations as $lang => $id){
@@ -1446,12 +1626,12 @@ add_action('wp', function(){
     if (is_admin()) return;
 
     if (my_hreflang_mode() !== 'custom') {
-        my_debug('Canonical kept (plugin mode)');
+        //my_debug('Canonical kept (plugin mode)');
         return;
     }
 
     remove_action('wp_head', 'rel_canonical');
-	my_debug('Canonical removed (custom mode)');
+	//my_debug('Canonical removed (custom mode)');
 
 });
 
@@ -1471,7 +1651,7 @@ function my_hreflang_mode(){
 add_action('init', function(){
 
     if (my_hreflang_mode() !== 'custom') {
-        my_debug('Plugin hreflang NOT disabled (plugin mode)');
+        //my_debug('Plugin hreflang NOT disabled (plugin mode)');
         return;
     }
 
@@ -1479,26 +1659,26 @@ add_action('init', function(){
 	// YOAST
     if (defined('WPSEO_VERSION')) {
         add_filter('wpseo_hreflang', '__return_false');
-        my_debug('Yoast hreflang disabled');
+        //my_debug('Yoast hreflang disabled');
     }
 
 	// RANK_MATH
     if (defined('RANK_MATH_VERSION')) {
         add_filter('rank_math/frontend/hreflang', '__return_false');
-        my_debug('RankMath hreflang disabled');
+        //my_debug('RankMath hreflang disabled');
     }
 	
     // AIOSEO
     if (defined('AIOSEO_VERSION')) {
         add_filter('aioseo_hreflang', '__return_false');
-		my_debug('AIOSEO hreflang disabled');
+		//my_debug('AIOSEO hreflang disabled');
 
     }
 
     // SEOPress
     if (defined('SEOPRESS_VERSION')) {
         add_filter('seopress_hreflang', '__return_false');
-		my_debug('SEOPRESS hreflang disabled');
+		//my_debug('SEOPRESS hreflang disabled');
     }
 
 });
@@ -1827,8 +2007,8 @@ add_filter('posts_search', function($search, $wp_query){
 // DEBUG
 // ===========================
 add_action('init', function(){
-
-    my_debug('System init', [
+	my_debug('=========================================');
+    my_debug('SYSTEM INIT', [
         'mode' => my_hreflang_mode(),
         'lang' => defined('MY_LANG') ? MY_LANG : null
     ]);
