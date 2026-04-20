@@ -21,6 +21,42 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.3] - 2026-04-20
+
+### UX Improvements
+- Automatic template assignment based on language when switching content language (e.g. `page-en`, `single-de`)
+- Improved editor workflow: language change now preserves user control over templates while applying sensible defaults on language assignment
+- Translation relationships now propagate automatically across existing language equivalents (no need to manually re-link all languages)
+  which reduces workload and errors.
+- Cleaner and more predictable behavior when creating new translations from a primary language
+- Language switcher improvements (stability and consistency when switching languages in the frontend)
+
+### Technical Notes
+- Introduced graph-based translation expansion to ensure full consistency across translation groups
+- Implements meta `_lang_previous` to detect real language changes reliably
+- Hardened template resolution logic using `wp_template` post type (FSE-compatible)
+- Refined homepage redirect logic to avoid conflicts with query-based requests (e.g. search)
+- Maintained compatibility with block themes and custom template hierarchy
+
+### Added
+- Automatic propagation of translation relationships across all linked posts/pages
+- Language-aware template resolution helper functions
+- Safeguards for template auto-assignment (only applies when no custom template is set)
+- Improved debug coverage for template assignment and routing behavior
+- Page and post templates are now handled like search templates and automatically assigned on setting language if a language specific
+  template exists for a given type.
+
+### Changed
+- Refactored `wp_after_insert_post` logic for better separation of concerns (language, template, translation graph)
+- Improved robustness of homepage redirect to avoid interfering with search and query-based requests
+- Optimized translation grouping logic to ensure consistency across all languages
+
+### Fixed
+- Search requests being redirected to language specific homepage equivalent under certain language conditions
+- Language Switcher creating unavailable and unnecessary url resource in the frontend with 404 response
+
+---
+
 ## [1.1.2] - 2026-04-15
 
 ### UX Improvements
