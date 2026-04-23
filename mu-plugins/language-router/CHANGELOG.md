@@ -21,6 +21,22 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.4] - 2026-04-24
+
+### Technical Notes
+- Language router did not respect query vars of third parties, now it should maintain query vars correclty
+
+### Added
+- Support for query vars other than standard search
+
+### Changed
+- Refactored redirects to respect query vars
+
+### Fixed
+- Respects query vars given now.
+
+---
+
 ## [1.1.3] - 2026-04-20
 
 ### UX Improvements
