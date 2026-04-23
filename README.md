@@ -41,6 +41,7 @@ The Image, Gallery, and Carousel blocks have limitations:
 - No proper control over the *lightbox* background (color and related parameters)  
 - The Carousel block does not provide a natural slide progression within the same overlay for images included in the carousel block  
 - The Gallery block does support this behavior natively
+- The latest version includes support for forward/backward keys for the Carousel Slider Block when displaying images in Lightbox.
 
 The image lightbox for carousel pictures could be improved to have a more native touch and feel via css.
 Works on top of the [Carousel Slider Block Plugin](https://wordpress.org/plugins/carousel-block/) provided for Wordpress by Virgildia.
