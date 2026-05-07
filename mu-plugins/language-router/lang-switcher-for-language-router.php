@@ -2,7 +2,7 @@
 /**
  * LSFLR: Language Switcher for Language Routing  – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.4
+ * Version: 1.1.5
  */
 
 /* -------------------------------------------------
@@ -91,11 +91,10 @@ function my_lsflr_translate_current_url($target_lang, $post_id = null){
  */
 add_action('wp_enqueue_scripts', function () {
     wp_enqueue_style(
-        'lsflr-css',
+        'lsflr', // 👈 cleaner
         plugin_dir_url(__FILE__) . '/assets/lsflr.css'
     );	
 });
-
 
 function my_is_valid_lang($lang){
     return in_array($lang, my_languages());
