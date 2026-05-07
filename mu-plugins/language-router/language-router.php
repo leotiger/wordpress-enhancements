@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.4
+ * Version: 1.1.5
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -282,6 +282,66 @@ function my_apply_locale(){
 
 add_action('plugins_loaded', 'my_apply_locale', 0);
 
+/*
+add_filter('determine_locale', function($locale){
+
+    if (!defined('MY_LANG')) {
+        return $locale;
+    }
+
+    // 🔥 Handle AJAX explicitly
+    if (defined('DOING_AJAX') && DOING_AJAX) {
+
+        // Prefer cookie
+        if (!empty($_COOKIE['my_lang'])) {
+            return my_locale_from_lang(substr($_COOKIE['my_lang'], 0, 2));
+        }
+
+        // fallback
+        return my_locale_from_lang(MY_LANG);
+    }
+
+    return my_locale_from_lang(MY_LANG);
+
+}, 0);
+*/
+add_filter('determine_locale', function($locale){
+
+    if (!defined('MY_LANG')) {
+        return $locale;
+    }
+
+    // 🚫 admin (except AJAX)
+    if (is_admin() && !(defined('DOING_AJAX') && DOING_AJAX)) {
+        return $locale;
+    }
+
+    // 🚫 REST
+    if (defined('REST_REQUEST') && REST_REQUEST) {
+        return $locale;
+    }
+
+    // 🥇 1. REQUEST (AJAX or manual)
+    if (!empty($_REQUEST['lang']) && my_is_valid_lang($_REQUEST['lang'])) {
+        return my_locale_from_lang($_REQUEST['lang']);
+    }
+
+    // 🥈 2. FRONTEND (URL → MY_LANG)
+    if (!empty(MY_LANG)) {
+        return my_locale_from_lang(MY_LANG);
+    }
+
+    // 🥉 3. COOKIE fallback only
+    if (!empty($_COOKIE['my_lang'])) {
+        $lang = substr(strtolower($_COOKIE['my_lang']), 0, 2);
+        if (my_is_valid_lang($lang)) {
+            return my_locale_from_lang($lang);
+        }
+    }
+
+    return $locale;
+
+}, 0);
 // =============================
 // LOAD TRANSLATION FILES FOR A GIVEN TEXT DOMAIN
 // NEEDS TO RUN EARLY, TO BE EFFECTIVE
@@ -461,7 +521,7 @@ function my_get_lang($id){
     $lang = get_post_meta($id,'_lang',true);
 
     if(!$lang){
-        error_log("Missing _lang for post ID: $id");
+        //error_log("Missing _lang for post ID: $id");
         return my_source_language();
     }
 
@@ -684,8 +744,18 @@ add_action('pre_get_posts', function($q){
 	// =============================
 	// ADMIN
 	// =============================
+	
 	if (is_admin()) {
+		if (!$q->is_main_query()) return;
+		/*
+		// 🔥 Only apply to list table (edit.php)
+		$screen = function_exists('get_current_screen') ? get_current_screen() : null;
 
+		if (!$screen || $screen->base !== 'edit') return;
+
+		// 🔥 Only for posts & pages
+		if (!in_array($screen->post_type, ['post','page'])) return;
+		*/
 		$meta_query = $q->get('meta_query') ?: [];
 
 		$user_id = get_current_user_id();
@@ -737,6 +807,7 @@ add_action('pre_get_posts', function($q){
 			$q->set('meta_query', $meta_query);
 		}
 	}	
+	
 
 });
 
@@ -788,6 +859,9 @@ function my_get_posts($args = [], $fallback = false) {
 // REDIRECT + FALLBACK
 // =============================
 function my_is_system_request() {
+	$uri = $_SERVER['REQUEST_URI'] ?? '';
+
+// 🔥 HARD STOP (must be first)
     return
         (defined('DOING_AJAX') && DOING_AJAX) ||
         (defined('REST_REQUEST') && REST_REQUEST) ||
@@ -1821,6 +1895,48 @@ add_action('wp', function(){
 
 });
 
+// ======================================
+// ASSURE LANGUAGE ON AJAX CALLS FRONTEND
+// ======================================
+add_action('wp_footer', function(){
+    if (is_admin()) return;
+?>
+<script>
+jQuery(function($){
+
+    const lang = "<?php echo esc_js(MY_LANG); ?>";
+
+    $(document).ajaxSend(function(event, xhr, settings){
+
+        // Skip if already present
+        if (typeof settings.data === 'string' && settings.data.includes('lang=')) {
+            return;
+        }
+
+        // Handle FormData (modern AJAX)
+        if (settings.data instanceof FormData) {
+            settings.data.append('lang', lang);
+            return;
+        }
+
+        // Handle string data
+        if (typeof settings.data === 'string' && settings.data.length) {
+            settings.data += '&lang=' + lang;
+            return;
+        }
+
+        // Handle empty
+        if (!settings.data) {
+            settings.data = 'lang=' + lang;
+        }
+
+    });
+
+});
+</script>
+<?php
+}, 20);
+
 // ====================================
 // LANGUAGE COOKIE
 // ====================================
@@ -1866,11 +1982,11 @@ function my_ensure_lang_index(){
     $result = $wpdb->query("CREATE INDEX {$index_name} ON {$table} (meta_key, meta_value(10))");
 
     if ($result === false) {
-        error_log('[Language Router] Failed to create index idx_lang');
+        //error_log('[Language Router] Failed to create index idx_lang');
         return false;
     }
 
-    error_log('[Language Router] Created index idx_lang on ' . $table);
+    //error_log('[Language Router] Created index idx_lang on ' . $table);
 
     return true;
 }
