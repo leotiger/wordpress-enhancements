@@ -21,6 +21,33 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.5] - 2026-05-08
+
+### Technical Notes
+- Major stabilization improvements.
+
+### Added
+- Frontend AJAX language propagation via automatic lang injection into jQuery AJAX requests
+- Language-aware handling for AJAX requests through admin-ajax.php
+- Translation graph completion when linking translations
+
+### Changed
+- Refactored locale handling to use determine_locale as primary mechanism
+- Refined pre_get_posts handling to target only relevant frontend main queries
+- Restricted language filtering to archives, home, and search queries only
+- Improved query isolation between frontend, admin, AJAX, REST, and CLI contexts
+
+### Fixed
+- AJAX requests losing language context
+- VikBooking translations failing during AJAX requests
+- Locale inconsistencies caused by stale language cookies
+- Admin page listings showing “No title”
+- Query pollution caused by globally forcing language vars
+- Search requests incorrectly treated as homepage queries
+- Translation cache not invalidated after post updates
+
+---
+
 ## [1.1.4] - 2026-04-24
 
 ### Technical Notes
