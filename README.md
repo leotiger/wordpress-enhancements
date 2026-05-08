@@ -7,6 +7,9 @@ Meanwhile, the WordPress ecosystem increasingly behaves like a business platform
 This project is a practical response to that situation.
 
 You can see things in action on our website under [Cal Talaia](https://cal-talaia.cat).
+
+Test our site with PageSpeed and other tools. We are trying to deliver a simple yet complete WP integration with free out of the box tools... Not everything is yet published here...
+
 ---
 
 ## Philosophy
