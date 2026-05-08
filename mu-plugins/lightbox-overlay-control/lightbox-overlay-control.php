@@ -3,7 +3,7 @@
  * Plugin Name: Lightbox Overlay Carousel for Carousel Slider Block (MU Module)
  * Description: Adds overlay carousel for images included in Carousel Slider Block.
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1
  */
 
 if (!defined('ABSPATH')) exit;
@@ -56,62 +56,96 @@ add_action('wp_enqueue_scripts', function () {
     );
 });
 
-/*
-add_filter('render_block', function ($block_content, $block) {
+add_action('wp_footer', function () {
+?>
+<script>
+	(function () {
+		document.addEventListener('pointerdown', function(e) {
+			document.querySelectorAll('.swiper-slide figure img').forEach(img => {
 
-    // 🎯 Only target blocks that act as carousels
-    // Adjust these conditions depending on your setup
+			if (img.dataset.src && !img.src.includes(img.dataset.src)) {
+			  img.src = img.dataset.src;
+			}
 
-    if (
-        strpos($block_content, 'swiper') === false &&
-        strpos($block_content, 'splide') === false &&
-        strpos($block_content, 'flickity') === false &&
-        strpos($block_content, 'data-carousel') === false
-    ) {
-        return $block_content;
-    }
+			if (img.dataset.srcset && !img.srcset) {
+			  img.srcset = img.dataset.srcset;
+			}
 
-    // ❌ Skip real galleries
-    if (strpos($block_content, 'wp-block-gallery') !== false) {
-        return $block_content;
-    }
+			const picture = img.closest('picture');
 
-    // 🔥 Generate stable galleryId
-    static $gallery_index = 0;
-    $gallery_index++;
-    $gallery_id = 'loc-' . $gallery_index;
+			if (picture) {
+			  picture.querySelectorAll('source').forEach(source => {
 
-    //**
-    // * ✅ Inject lightbox context into container
-    // *
-    $block_content = preg_replace(
-        '/(<div[^>]*class="[^"]*(swiper|splide|flickity|carousel)[^"]*"[^>]*)>/',
-        '$1 data-wp-interactive="core/lightbox" data-wp-context=\'{"galleryId":"' . $gallery_id . '"}\'>',
-        $block_content,
-        1
-    );
+				if (source.dataset.srcset && !source.srcset) {
+				  source.srcset = source.dataset.srcset;
+				}
 
-    // **
-    // * ✅ Ensure images are wrapped in links
-    // *
-    $block_content = preg_replace_callback(
-        '/<img([^>]+?)src="([^"]+)"([^>]*)>/',
-        function ($matches) {
+			  });
+			}
 
-            $img = $matches[0];
-            $src = $matches[2];
+		  });
 
-            // already wrapped → skip
-            if (strpos($matches[0], '<a') !== false) {
-                return $img;
-            }
+		}, true);
+		
+		document.addEventListener('click', async function(e) {
 
-            return '<a href="' . esc_url($src) . '">' . $img . '</a>';
-        },
-        $block_content
-    );
+			const trigger = e.target.closest('.wp-lightbox-container');
+			if (!trigger) {
+				return;
+			}
+			e.preventDefault();
+			e.stopImmediatePropagation();
 
-    return $block_content;
+			const images = document.querySelectorAll('.swiper-slide figure img');
 
-}, 20, 2);
-*/
+			await Promise.all([...images].map(img => {
+
+				return new Promise(resolve => {
+
+					if (img.dataset.src) {
+						img.src = img.dataset.src;
+					}
+
+					if (img.dataset.srcset) {
+						img.srcset = img.dataset.srcset;
+					}
+
+					if (img.dataset.sizes) {
+						img.sizes = img.dataset.sizes;
+					}
+
+					const picture = img.closest('picture');
+
+					if (picture) {
+						picture.querySelectorAll('source').forEach(source => {
+
+							if (source.dataset.srcset) {
+								source.srcset = source.dataset.srcset;
+							}
+
+						});
+					}
+
+					if (img.complete) {
+						resolve();
+						return;
+					}
+
+					img.onload = resolve;
+					img.onerror = resolve;
+
+				});
+
+			}));
+			// allow browser to commit layout/source selection
+			await new Promise(requestAnimationFrame);
+
+			replayingLightboxClick = true;
+			await new Promise(resolve => setTimeout(resolve, 50));
+			trigger.click();
+
+		}, true);	
+	})();	
+</script>
+<?php
+}, 100);
