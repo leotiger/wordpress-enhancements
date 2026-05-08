@@ -1,1 +1,25 @@
+# Changelog
 
+## [1.1.0] - 2026-05-08
+
+### Added
+- Improved WordPress lightbox integration for carousel galleries.
+- Added proactive image hydration for Swiper/Gutenberg carousel images before opening the lightbox overlay.
+- Added support for lazy-loaded `picture`, `source`, `srcset`, and responsive image handling to use with lightbox galleries.
+
+### Fixed
+- Fixed issue where navigating the lightbox carousel could display placeholders or missing images when the main Swiper carousel had not yet loaded all lazy-loaded slides.
+- Fixed synchronization issues between lazy-loaded Swiper slides and the WordPress lightbox overlay gallery.
+- Improved first-open behavior of lightbox galleries by ensuring all carousel images are fetched and processed before overlay navigation becomes active.
+
+### Improved
+- Optimized interaction flow between lazy loading, Swiper carousels, and WordPress lightbox overlays.
+- Reduced cases where users needed to close and reopen the lightbox to access all gallery images.
+
+
+## [1.0.0] - 2026-04-24
+
+### Initial Release
+- Initial public release.
+- Added Swiper-based image carousel support.
+- Added WordPress/Gutenberg lightbox integration.
