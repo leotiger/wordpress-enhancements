@@ -10,6 +10,7 @@ $mu_plugins = [
 	'accordion-scroll/accordion-scroll.php',
 	'language-router/language-router.php',
 	'gutenberg-enhancements/gutenberg-enhancements.php',
+    'meta-description/meta-description.php',
 ];
 
 foreach ($mu_plugins as $plugin) {
