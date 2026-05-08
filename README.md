@@ -284,10 +284,47 @@ of the box. We appreciate feedback. Language Routing and Translation is heavy st
 
 ---
 
+## MU Meta Description For SEO (Full Control)
+
+A lightweight WordPress MU plugin that gives full control over meta descriptions without the overhead of large SEO plugins.
+
+### Features
+
+- Custom meta description field for posts and pages
+- Automatic fallback generation from excerpts or page content
+- Outputs standard SEO meta tags:
+  - `meta description`
+  - `Open Graph description`
+  - `Twitter description`
+- Preserves handcrafted descriptions without truncation
+- Automatically shortens generated fallback descriptions
+- UTF-8 safe truncation using multibyte functions
+- Minimal footprint and no frontend dependencies
+- Compatible with multilingual and custom editorial workflows
+
+### Description Logic
+
+The plugin uses the following priority order:
+
+1. Custom meta description
+2. Post excerpt
+3. Trimmed page content
+4. Site description fallback
+
+### Automatic Fallback Truncation
+
+Automatically generated descriptions are shortened to avoid excessively long SERP snippets, while manually crafted descriptions remain untouched.
+
+### Designed For
+
+Ideal for lightweight WordPress setups, custom themes and sites that prefer direct SEO control without large SEO frameworks.
+
+---
+
 **MSLS is abandoned. It's in here because it may serve as an intersting code for Wordpress sites using Multisite configuration for Wordpress, which is not our case anymore.
 That said, don't try to use this with our Language Router, the two approaches to deliver a webiste for several languages are completly different.**
 
-### MSLS
+## MSLS
 
 We use (not anymore):
 
