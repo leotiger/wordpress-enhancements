@@ -21,6 +21,26 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.6] - 2026-05-09
+
+### Technical Notes
+- Fix inconsistent FSE handling to avoid altering theme parts while editing posts, pages...
+
+### Added
+- Improved Gutenberg editing safety by disabling template editing mode from normal page and post editors.
+- Improved separation between content editing and Full Site Editing workflows to avoid accidental template modifications while editing content.
+- Preserved full Theme Editor functionality while restricting template editing access within content contexts.
+
+### Changed
+- Disabled `supportsTemplateMode` for standard post and page editing contexts.
+- Theme Editor and Full Site Editing remain fully available through the Appearance → Editor interface.
+
+### Fixed
+- Fixed accidental template modifications being saved while editing normal page content.
+- Fixed unintended Full Site Editing interactions from Gutenberg content editing screens.
+
+---
+
 ## [1.1.5] - 2026-05-08
 
 ### Technical Notes
