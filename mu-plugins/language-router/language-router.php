@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.5
+ * Version: 1.1.6
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -113,6 +113,22 @@ add_action('admin_menu', function(){
     );
 });
 
+// =========================================
+// Disallow to save site changes editing Page/Posts
+// FSE changes for Templates, Patterns should be 
+// handled and saved via Theme Editor
+// =========================================
+add_filter('block_editor_settings_all', function($settings, $context) {
+
+    $settings['canLockBlocks'] = false;
+
+    if (!empty($context->post)) {
+        $settings['supportsTemplateMode'] = false;
+    }
+
+    return $settings;
+
+}, 10, 2);
 
 // =============================
 // LANGUAGE DETECTION
