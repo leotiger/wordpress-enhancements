@@ -1,9 +1,14 @@
 # Changelog
 
+## [1.1.1] - 2026-05-09
+
+### Fixed
+- Removing unnecessary and problematic click handler which caused conflict in WP Gallery Block instances.
+
 ## [1.1.0] - 2026-05-08
 
 ### Added
-- Improved WordPress lightbox integration for carousel galleries.
+- Improved WordPress lightbox integration for Carousel Slider Block galleries.
 - Added proactive image hydration for Swiper/Gutenberg carousel images before opening the lightbox overlay.
 - Added support for lazy-loaded `picture`, `source`, `srcset`, and responsive image handling to use with lightbox galleries.
 
