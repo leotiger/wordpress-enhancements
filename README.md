@@ -238,6 +238,11 @@ If a language-specific template does not exist:
 - **Routing layer (this plugin)** → decides *which language*
 - **FSE templates** → decide *how it looks*
 
+### 4. The plugin disables FSE editing for Posts, Pages and custom types
+
+- The plugin forces to edit templates and template parts like footers using
+  the Theme Editor to avoid accidental changes
+
 ---
 
 ### 4. Database-Based System
