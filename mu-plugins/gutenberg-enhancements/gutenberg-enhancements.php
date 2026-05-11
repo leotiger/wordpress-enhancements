@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cal Talaia Gutenberg Enhancements
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1.0
  */
 
 if (!defined('ABSPATH')) exit;
@@ -460,8 +460,12 @@ document.addEventListener('click', function (e) {
 
     if (!match) return;
 
-    const src = match[1];
-
+    //const src = match[1];
+	const src = (
+		img.dataset.bg ||
+		img.getAttribute('data-bg') ||
+		''
+	).trim();
     // -----------------------------
     // CREATE OVERLAY
     // -----------------------------
@@ -478,14 +482,16 @@ document.addEventListener('click', function (e) {
         z-index: 9999;
         cursor: zoom-out;
     `;
-
+	
+	
     const image = document.createElement('img');
-    image.src = src;
+	// quick and dirty fix for 
+    // image.src = src.replace(/^=["']+|["']+$/g, '').replace(/"/g, '').replace(/&quot;/g, '');
+	image.src = src;
     image.style.cssText = `
         max-width: 90%;
         max-height: 90%;
     `;
-
 
 	overlay.appendChild(image);
 
