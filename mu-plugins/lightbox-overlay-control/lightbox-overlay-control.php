@@ -3,7 +3,7 @@
  * Plugin Name: Lightbox Overlay Carousel for Carousel Slider Block (MU Module)
  * Description: Adds overlay carousel for images included in Carousel Slider Block.
  * Author: Uli Hake
- * Version: 1.1.1
+ * Version: 1.1.2
  */
 
 if (!defined('ABSPATH')) exit;
@@ -59,34 +59,62 @@ add_action('wp_enqueue_scripts', function () {
 add_action('wp_footer', function () {
 ?>
 <script>
-	(function () {
-		document.addEventListener('pointerdown', function(e) {
-			document.querySelectorAll('.swiper-slide figure img').forEach(img => {
+(function () {
 
-			if (img.dataset.src && !img.src.includes(img.dataset.src)) {
-			  img.src = img.dataset.src;
+	document.addEventListener('pointerenter', function(e) {
+
+		const container = e.target.closest('.wp-lightbox-container');
+
+		if (!container) {
+			return;
+		}
+
+		const gallery = container.closest('.swiper');
+
+		if (!gallery) {
+			return;
+		}
+
+		gallery.querySelectorAll('.swiper-slide figure img').forEach(img => {
+
+			if (img.dataset.src) {
+				img.src = img.dataset.src;
 			}
 
-			if (img.dataset.srcset && !img.srcset) {
-			  img.srcset = img.dataset.srcset;
+			if (img.dataset.srcset) {
+				img.srcset = img.dataset.srcset;
 			}
 
 			const picture = img.closest('picture');
 
 			if (picture) {
-			  picture.querySelectorAll('source').forEach(source => {
 
-				if (source.dataset.srcset && !source.srcset) {
-				  source.srcset = source.dataset.srcset;
-				}
+				picture.querySelectorAll('source').forEach(source => {
 
-			  });
+					if (source.dataset.srcset) {
+						source.srcset = source.dataset.srcset;
+					}
+
+				});
+
 			}
 
-		  });
+		});
 
-		}, true);
-	})();	
+		container.querySelectorAll('img.lazyload').forEach(img => {
+
+			img.classList.remove('lazyload');
+			img.classList.remove('lazyloading');
+			img.classList.add('lazyloaded');
+
+		});
+
+	}, {
+		capture: true,
+		passive: true
+	});
+
+})();	
 </script>
 <?php
 }, 100);
