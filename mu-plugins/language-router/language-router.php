@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.7
+ * Version: 1.1.8
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -300,29 +300,6 @@ function my_apply_locale(){
 
 add_action('plugins_loaded', 'my_apply_locale', 0);
 
-/*
-add_filter('determine_locale', function($locale){
-
-    if (!defined('MY_LANG')) {
-        return $locale;
-    }
-
-    // 🔥 Handle AJAX explicitly
-    if (defined('DOING_AJAX') && DOING_AJAX) {
-
-        // Prefer cookie
-        if (!empty($_COOKIE['my_lang'])) {
-            return my_locale_from_lang(substr($_COOKIE['my_lang'], 0, 2));
-        }
-
-        // fallback
-        return my_locale_from_lang(MY_LANG);
-    }
-
-    return my_locale_from_lang(MY_LANG);
-
-}, 0);
-*/
 add_filter('determine_locale', function($locale){
 
     if (!defined('MY_LANG')) {
@@ -713,52 +690,7 @@ add_action('pre_get_posts', function($q){
 		}
         return;
     }
-	/*
-    // =============================
-    // ADMIN
-    // =============================
-	if (is_admin()) {
-		$meta_query = $q->get('meta_query') ?: [];
 
-		// Language filter
-		if (!empty($_GET['my_lang_filter'])) {
-
-			$lang = sanitize_text_field($_GET['my_lang_filter']);
-
-			$meta_query[] = [
-				'key'   => '_lang',
-				'value' => $lang
-			];
-		}
-
-		// Outdated filter
-		if (!empty($_GET['my_outdated_filter'])) {
-
-			$meta_query[] = [
-				'key'     => '_lang',
-				'value'   => my_source_language(),
-				'compare' => '!='
-			];
-
-			$meta_query[] = [
-				'relation' => 'OR',
-				[
-					'key'     => '_translation_source_updated_at',
-					'compare' => 'NOT EXISTS'
-				],
-				[
-					'key'     => '_translation_source_updated_at',
-					'value'   => 0,
-					'compare' => '='
-				]
-			];
-		}
-
-		if (!empty($meta_query)) {
-			$q->set('meta_query', $meta_query);
-		}
-	}
-	*/
 	// =============================
 	// ADMIN
 	// =============================
@@ -927,42 +859,6 @@ add_action('template_redirect', function(){
 
 }, 1);
 
-// =============================
-// HOMEPAGE HANDLING
-// =============================
-/*
-add_action('template_redirect', function(){
-
-	if (my_is_system_request()) return;
-	
-    if (is_admin()) return;
-    if (!defined('MY_LANG')) return;
-
-    $path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-
-    // only exact root request
-    if ($path !== '/' && $path !== '') return;
-	if (is_search()) return;
-
-    $front_id = get_option('page_on_front');
-    if (!$front_id) return;
-
-    $translations = my_get_translations($front_id);
-
-    if (empty($translations[MY_LANG])) return;
-
-    $target = get_permalink($translations[MY_LANG]);
-
-    if (untrailingslashit($target) === untrailingslashit(home_url('/'))) {
-        return;
-    }
-	
-	$target = add_query_arg($_GET, $target);
-    wp_redirect($target, 302);
-    exit;
-
-});
-*/
 // =============================
 // HOMEPAGE + LANGUAGE ROOT HANDLING
 // =============================
@@ -1138,12 +1034,16 @@ add_action('add_meta_boxes', function(){
                 return;
             }
 
-            $current = get_post_meta(
-                $post->ID,
-                '_wp_page_template',
-                true
-            );
+			$current = get_post_meta(
+				$post->ID,
+				'_wp_page_template',
+				true
+			);
 
+			if (empty($current)) {
+				$current = 'default';
+			}			
+			
             $templates = get_posts([
                 'post_type'      => 'wp_template',
                 'posts_per_page' => -1,
@@ -1188,6 +1088,68 @@ add_action('add_meta_boxes', function(){
     );
 	
 });
+
+// =========================================
+// FILTER PARENT PAGE SELECTOR
+// TO CURRENT LANGUAGE ONLY
+// =========================================
+add_filter('get_pages', function($pages, $args){
+
+    // =========================================
+    // ONLY ADMIN
+    // =========================================
+    if (!is_admin()) {
+        return $pages;
+    }
+
+    // =========================================
+    // ONLY QUICK EDIT PARENT SELECTOR
+    // =========================================
+    global $pagenow;
+
+    if ($pagenow !== 'edit.php') {
+        return $pages;
+    }
+
+    // =========================================
+    // CURRENT ADMIN FILTER
+    // =========================================
+    $lang = null;
+
+    if (!empty($_GET['my_lang_filter'])) {
+
+        $lang = sanitize_text_field(
+            $_GET['my_lang_filter']
+        );
+
+    } else {
+
+        $lang = get_user_meta(
+            get_current_user_id(),
+            'my_lang_filter',
+            true
+        );
+    }
+
+    if (!$lang) {
+        return $pages;
+    }
+
+    // =========================================
+    // FILTER PAGES TO CURRENT LANGUAGE
+    // =========================================
+    $filtered = [];
+
+    foreach ($pages as $page) {
+
+        if (my_get_lang($page->ID) === $lang) {
+            $filtered[] = $page;
+        }
+    }
+
+    return $filtered;
+
+}, 10, 2);
 
 // =============================
 // ADMIN: TRANSLATIONS
@@ -1633,15 +1595,6 @@ add_action('admin_footer', function(){
 
 			let isNew = wp.data.select('core/editor').isEditedPostNew();
 
-			// 🟢 New post → reload (incorrect behavior)
-			/*
-			if(isNew){
-				setTimeout(function(){
-					location.reload();
-				}, 300);
-				return;
-			}
-			*/
 			// Better inform
 			if (isNew) {
 				wp.data.dispatch('core/notices').createNotice(
@@ -1795,30 +1748,6 @@ add_action('admin_footer', function(){
 // =============================
 // ADMIN FILTER: LANGUAGE
 // =============================
-
-// Dropdown in admin list
-/*
-add_action('restrict_manage_posts', function($post_type){
-
-    if (!in_array($post_type, ['post','page'])) return;
-
-    $current = $_GET['my_lang_filter'] ?? '';
-
-    echo '<select name="my_lang_filter">';
-    echo '<option value="">All languages</option>';
-
-    foreach (my_languages() as $lang) {
-        echo '<option value="'.esc_attr($lang).'" '
-            . selected($current, $lang, false)
-            . '>'
-            . strtoupper($lang)
-            . '</option>';
-    }
-
-    echo '</select>';
-
-});
-*/
 add_action('restrict_manage_posts', function($post_type){
 
     if (!in_array($post_type, ['post','page'])) return;
