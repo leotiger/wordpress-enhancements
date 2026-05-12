@@ -21,6 +21,50 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.7] - 2026-05-12
+
+### UX Improvements
+
+- Restored template assignment support for Pages and Posts while maintaining protection against accidental Full Site Editing entity persistence.
+- Added a dedicated sidebar Template selector compatible with block themes and FSE templates.
+- Improved compatibility with multilingual template workflows (`page-en`, `page-de`, `single-fr`, etc.).
+- Language-root URLs such as `/de/`, `/fr/`, `/en/` now dynamically resolve to the translated front page using the TRID system.
+
+### Technical Notes
+
+- `supportsTemplateMode` remains disabled intentionally to prevent Gutenberg from offering:
+  - template saves
+  - navigation saves
+  - template part persistence
+  - synced pattern overrides
+- Template assignment is now handled independently via `_wp_page_template` meta handling.
+- FSE templates are resolved directly from the `wp_template` post type instead of relying on `wp_get_theme()->get_page_templates()`, improving compatibility with block themes.
+- Front-page language routing now dynamically resolves translated homepage objects via TRID relationships without hardcoded aliases.
+
+### Added
+
+- Dedicated Template meta box for Posts and Pages.
+- Dynamic language-root handling for:
+  - `/de/`
+  - `/fr/`
+  - `/en/`
+  - and all registered languages.
+- Support for FSE template slug enumeration through `wp_template` objects.
+
+### Changed
+
+- Improved frontend language-root redirect handling using dynamic TRID resolution.
+- Improved block-theme compatibility for template assignment workflows.
+- Improved protection against unintended Full Site Editing entity modifications from content editors.
+
+### Fixed
+
+- Fixed inability to assign templates after disabling Gutenberg template mode.
+- Fixed incorrect detection/loading of currently assigned FSE templates in the custom template selector.
+- Fixed potential accidental persistence of navigation entities and template parts during normal page editing workflows.
+
+---
+
 ## [1.1.6] - 2026-05-09
 
 ### Technical Notes
