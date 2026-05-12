@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.6
+ * Version: 1.1.7
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -118,6 +118,7 @@ add_action('admin_menu', function(){
 // FSE changes for Templates, Patterns should be 
 // handled and saved via Theme Editor
 // =========================================
+
 add_filter('block_editor_settings_all', function($settings, $context) {
 
     $settings['canLockBlocks'] = false;
@@ -129,6 +130,7 @@ add_filter('block_editor_settings_all', function($settings, $context) {
     return $settings;
 
 }, 10, 2);
+
 
 // =============================
 // LANGUAGE DETECTION
@@ -928,6 +930,7 @@ add_action('template_redirect', function(){
 // =============================
 // HOMEPAGE HANDLING
 // =============================
+/*
 add_action('template_redirect', function(){
 
 	if (my_is_system_request()) return;
@@ -957,6 +960,82 @@ add_action('template_redirect', function(){
 	$target = add_query_arg($_GET, $target);
     wp_redirect($target, 302);
     exit;
+
+});
+*/
+// =============================
+// HOMEPAGE + LANGUAGE ROOT HANDLING
+// =============================
+add_action('template_redirect', function(){
+
+	if (my_is_system_request()) return;
+
+	if (is_admin()) return;
+
+	if (!defined('MY_LANG')) return;
+
+	if (is_search()) return;
+
+	$path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+
+	// =============================
+	// ONLY:
+	// /
+	// /de/
+	// /fr/
+	// /en/
+	// =============================
+	if (
+		$path !== '/' &&
+		$path !== '' &&
+		!preg_match('#^/[a-z]{2}/?$#', $path)
+	) {
+		return;
+	}
+
+	$front_id = get_option('page_on_front');
+
+	if (!$front_id) return;
+
+	$translations = my_get_translations($front_id);
+
+	// =============================
+	// Resolve target dynamically
+	// =============================
+	if (
+		MY_LANG !== my_source_language() &&
+		!empty($translations[MY_LANG])
+	) {
+
+		$target_id = $translations[MY_LANG];
+
+	} else {
+
+		$target_id = $front_id;
+
+	}
+
+	$target = get_permalink($target_id);
+
+	if (!$target) return;
+
+	// =============================
+	// Avoid redirect loops
+	// =============================
+	$current = home_url(trailingslashit(ltrim($path, '/')));
+
+	if (
+		untrailingslashit($target) ===
+		untrailingslashit($current)
+	) {
+		return;
+	}
+
+	$target = add_query_arg($_GET, $target);
+
+	wp_redirect($target, 302);
+
+	exit;
 
 });
 
@@ -1045,7 +1124,69 @@ add_action('add_meta_boxes', function(){
         echo '</select>';
 
     },null,'side');
+	
+	// =========================================
+	// RESTORE TEMPLATE SELECTION
+	// WITHOUT ENABLETING TEMPLATE MODE
+	// =========================================	
+    add_meta_box(
+        'my_page_template',
+        'Template',
+        function($post) {
 
+            if (!in_array($post->post_type, ['page', 'post'])) {
+                return;
+            }
+
+            $current = get_post_meta(
+                $post->ID,
+                '_wp_page_template',
+                true
+            );
+
+            $templates = get_posts([
+                'post_type'      => 'wp_template',
+                'posts_per_page' => -1,
+                'post_status'    => 'publish',
+            ]);
+
+            echo '<select name="my_page_template" style="width:100%">';
+
+            echo '<option value="default"' .
+                selected($current, 'default', false) .
+                '>Default</option>';
+
+            foreach ($templates as $tpl) {
+
+                $slug = $tpl->post_name;
+
+                // only relevant templates
+                if (
+                    strpos($slug, 'page-') !== 0 &&
+                    strpos($slug, 'single-') !== 0
+                ) {
+                    continue;
+                }
+
+                echo '<option value="' . esc_attr($slug) . '" ' .
+                    selected($current, $slug, false) .
+                    '>' .
+                    esc_html($slug) .
+                    '</option>';
+            }
+
+            echo '</select>';
+
+            echo '<p style="margin-top:8px;color:#666;">';
+            echo 'Current: <code>' . esc_html($current ?: 'default') . '</code>';
+            echo '</p>';
+
+        },
+        null,
+        'side',
+        'default'
+    );
+	
 });
 
 // =============================
@@ -1331,8 +1472,25 @@ add_action('wp_after_insert_post', function($post_id, $post){
     // =============================
     // 🔹 SEARCH INDEX
     // =============================
-
     my_build_search_content($post_id);
+	
+	
+    // =============================
+    // 🔹 TEMPLATE SELECTION
+    // =============================	
+    if (!isset($_POST['my_page_template'])) {
+        return;
+    }
+
+    $template = sanitize_text_field(
+        $_POST['my_page_template']
+    );
+
+    update_post_meta(
+        $post_id,
+        '_wp_page_template',
+        $template
+    );	
 
 }, 10, 2);
 
