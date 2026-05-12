@@ -21,6 +21,32 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.8] - 2026-05-12
+
+### UX Improvements
+
+- Improved Quick Edit usability by restricting parent page selection to objects written in the currently filtered language.
+- Parent selection in Quick Edit now behaves consistently with the active language filter in the content overview.
+
+### Technical Notes
+
+- Parent page filtering is now applied server-side via the native `get_pages` filter.
+- The Quick Edit parent selector automatically respects the persistent `my_lang_filter` admin preference.
+
+### Added
+
+- Server-side language-aware filtering for Quick Edit parent page dropdowns.
+
+### Changed
+
+- Quick Edit parent page retrieval now integrates directly with the language router filtering system.
+
+### Fixed
+
+- Fixed Quick Edit showing parent pages from unrelated languages.
+
+---
+
 ## [1.1.7] - 2026-05-12
 
 ### UX Improvements
