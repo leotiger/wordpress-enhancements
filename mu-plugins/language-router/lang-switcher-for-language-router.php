@@ -2,7 +2,7 @@
 /**
  * LSFLR: Language Switcher for Language Routing  – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.8
+ * Version: 1.1.9
  */
 
 /* -------------------------------------------------
