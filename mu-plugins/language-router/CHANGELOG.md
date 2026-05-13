@@ -21,6 +21,28 @@ All notable changes to the Language Router will be documented in this file.
 
 ---
 
+## [1.1.9] - 2026-05-13
+
+### Technical Notes
+
+- Improved multilingual URL normalization and canonicalization robustness.
+- Hardened permalink reconstruction logic against duplicated language prefixes and malformed path concatenation.
+- Added infrastructure-level duplicate slash normalization for malformed multilingual requests.
+- Improved archive and alternate URL path normalization handling.
+
+### Changed
+
+- Language-aware permalink generation now rebuilds normalized paths more defensively.
+- Archive hreflang generation now strips existing language prefixes before rebuilding alternate URLs.
+
+### Fixed
+
+- Fixed edge cases where malformed multilingual URLs could generate duplicated language prefixes.
+- Fixed potential double-slash multilingual URL variants being propagated by crawlers.
+- Fixed canonicalization inconsistencies for malformed multilingual requests.
+
+---
+
 ## [1.1.8] - 2026-05-12
 
 ### UX Improvements
