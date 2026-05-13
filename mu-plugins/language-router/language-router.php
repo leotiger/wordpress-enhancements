@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP (single instance – Object-based (no DOM, no parsing)
  * Author: Uli Hake
- * Version: 1.1.8
+ * Version: 1.1.9
  * (there's a internal version handling in the CONFIG SECTION which is used to assure db necessities)
  */
 
@@ -470,8 +470,6 @@ add_filter('locale', function($locale){
 
     if (is_admin()) return $locale;
     if (!defined('MY_LANG')) return $locale;
-    // ToDo: Not sure, we have to test this
-	//if (did_action('plugins_loaded') === 0) return $locale;	
     return my_locale_from_lang(MY_LANG);
 
 }, 0);
@@ -1817,13 +1815,31 @@ function my_lang_permalink($url, $post){
         return $url;
     }
 
-    // Avoid double prefix
-    if (strpos($url, '/' . $lang . '/') !== false) {
+    $path = parse_url($url, PHP_URL_PATH);
+
+    if (!$path) {
         return $url;
     }
 
-    return home_url('/' . $lang . '/') . ltrim(parse_url($url, PHP_URL_PATH), '/');
-}
+    $path = trim($path, '/');
+
+    // Remove accidental language prefix
+    $langs_regex = implode('|', array_map(
+        'preg_quote',
+        my_languages()
+    ));
+
+    $path = preg_replace(
+        '#^(' . $langs_regex . ')/#',
+        '',
+        $path
+    );
+
+    return home_url(
+        '/' . $lang . '/' . $path . '/'
+    );
+}	
+
 
 // ==================================
 // SEO CANONICAL LINKS
@@ -1893,26 +1909,61 @@ add_action('wp_head', function(){
         return;
     }
 
-    // =============================
-    // 🔹 ARCHIVES (category, home, etc.)
-    // =============================
-    if (is_archive() || is_home()) {
-		$path = trim($_SERVER['REQUEST_URI'] ?? '', '/');
-		$path = trim(parse_url('/' . $path, PHP_URL_PATH), '/');
-		
-        foreach(my_languages() as $lang){
+	// =============================
+	// 🔹 ARCHIVES (category, home, etc.)
+	// =============================
+	if (is_archive() || is_home()) {
 
-            if ($lang === my_source_language()) {
-                $url = home_url('/' . $path . '/');
-            } else {
-                $url = home_url('/' . $lang . '/' . $path . '/');
-            }
+		$path = parse_url(
+			$_SERVER['REQUEST_URI'] ?? '',
+			PHP_URL_PATH
+		);
 
-            echo '<link rel="alternate" hreflang="' . esc_attr($lang) . '" href="' . esc_url($url) . '" />' . "\n";
-        }
+		$path = trim($path, '/');
 
-        return;
-    }
+		// =====================================
+		// REMOVE EXISTING LANGUAGE PREFIX
+		// =====================================
+		$langs_regex = implode('|', array_map(
+			'preg_quote',
+			my_languages()
+		));
+
+		$path = preg_replace(
+			'#^(' . $langs_regex . ')/#',
+			'',
+			$path
+		);
+
+		// =====================================
+		// NORMALIZE DUPLICATE SLASHES
+		// =====================================
+		$path = preg_replace('#/+#', '/', $path);
+
+		foreach(my_languages() as $lang){
+
+			if ($lang === my_source_language()) {
+
+				$url = empty($path)
+					? home_url('/')
+					: home_url('/' . trailingslashit($path));
+
+			} else {
+
+				$url = empty($path)
+					? home_url('/' . trailingslashit($lang))
+					: home_url('/' . trailingslashit($lang . '/' . $path));
+			}
+
+			echo '<link rel="alternate" hreflang="' .
+				esc_attr($lang) .
+				'" href="' .
+				esc_url($url) .
+				'" />' . "\n";
+		}
+
+		return;
+	}	
 
 }, 1);
 
@@ -2183,6 +2234,30 @@ add_filter('render_block', function($block_content, $block){
     return $block_content;
 
 }, 20, 2);
+
+// =============================
+// NORMALIZE DUPLICATE SLASHES
+// =============================
+add_action('template_redirect', function(){
+
+    if (is_admin()) return;
+
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+
+    // Preserve protocol slashes
+    $clean = preg_replace(
+        '#(?<!:)//+#',
+        '/',
+        $uri
+    );
+
+    if ($clean !== $uri) {
+
+        wp_redirect($clean, 301);
+        exit;
+    }
+
+}, 0);
 
 add_action('template_redirect', function(){
 
