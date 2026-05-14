@@ -7,6 +7,7 @@
 
 .sib-button {
   display: inline-flex;
+  align-items: center;
   gap: 8px;
   border-radius: 6px;
   background: #007cba;
@@ -98,6 +99,14 @@
 
 .icon-button:hover {
   background: #eee;
+}
+
+/* ---------------- LINK WRAPPER ---------------- */
+
+.sib-link {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
 }
 
 /* ---------------- VARIANTS ---------------- */

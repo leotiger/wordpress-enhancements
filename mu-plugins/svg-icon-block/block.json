@@ -18,22 +18,18 @@
       "type": "number",
       "default": 24
     },
-    "color": {
-      "type": "string",
-      "default": ""
-    },
     "rotation": {
       "type": "number",
       "default": 0
     },
-	"justifyContent": {
-	  "type": "string",
-	  "default": "flex-start"
-	},
-	"alignItems": {
-	  "type": "string",
-	  "default": "center"
-	},		
+    "justifyContent": {
+      "type": "string",
+      "default": "flex-start"
+    },
+    "alignItems": {
+      "type": "string",
+      "default": "center"
+    },
     "url": {
       "type": "string",
       "default": ""
@@ -42,30 +38,34 @@
       "type": "boolean",
       "default": false
     },
-	"variant": {
-	  "type": "string",
-	  "default": "primary"
-	},
-	"iconColor": {
-	  "type": "string",
-	  "default": ""
-	},
-	"textColor": {
-	  "type": "string",
-	  "default": ""
-	},		
-	"iconPosition": {
-	  "type": "string",
-	  "default": "left"
-	},
-	"flipH": {
-	  "type": "boolean",
-	  "default": false
-	},
-	"flipV": {
-	  "type": "boolean",
-	  "default": false
-	}		
+    "rel": {
+      "type": "string",
+      "default": ""
+    },
+    "variant": {
+      "type": "string",
+      "default": "primary"
+    },
+    "iconColor": {
+      "type": "string",
+      "default": ""
+    },
+    "textColor": {
+      "type": "string",
+      "default": ""
+    },
+    "iconPosition": {
+      "type": "string",
+      "default": "left"
+    },
+    "flipH": {
+      "type": "boolean",
+      "default": false
+    },
+    "flipV": {
+      "type": "boolean",
+      "default": false
+    }
   },
   "supports": {
     "html": false

@@ -2,10 +2,12 @@
 /**
  * SVG Icon Block
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1
  */
 
 if (!defined('ABSPATH')) exit;
+
+define('SIB_CACHE_KEY', 'sib_icon_data_v1');
 
 add_action('wp_head', function () {
 
@@ -20,8 +22,8 @@ add_action('wp_head', function () {
 }, 1);
 
 add_action('init', function () {
-    if (isset($_GET['flush_icons_cache'])) {
-        delete_transient('sib_icon_data_v1');
+    if (isset($_GET['flush_icons_cache']) && current_user_can('manage_options')) {
+        delete_transient(SIB_CACHE_KEY);
     }
 });
 
@@ -30,7 +32,7 @@ add_action('init', function () {
  * Sprite URL (filterable)
  */
 function sib_get_sprite_url() {
-	
+
     return apply_filters(
         'sib_sprite_url',
         set_url_scheme(
@@ -38,8 +40,6 @@ function sib_get_sprite_url() {
             'https'
         )
     );
-	
-	//return 'https://' . $_SERVER['HTTP_HOST'] . '/wp-content/themes/cal-talaia/assets/icons/icons.svg';	
 }
 
 /**
@@ -47,10 +47,8 @@ function sib_get_sprite_url() {
  */
 function sib_get_icon_data() {
 
-    $cache_key = 'sib_icon_data_v1';
-
     // Try cache first
-    $cached = get_transient($cache_key);
+    $cached = get_transient(SIB_CACHE_KEY);
     if ($cached !== false) {
         return $cached;
     }
@@ -63,7 +61,6 @@ function sib_get_icon_data() {
 
     // Load safely
     $data = [
-        //'sprite' => sib_get_sprite_url(),
         'icons'  => file_exists($icons_path) ? json_decode(file_get_contents($icons_path), true) : [],
         'meta'   => file_exists($meta_path)  ? json_decode(file_get_contents($meta_path), true)  : [],
         'i18n'   => file_exists($i18n_path)  ? json_decode(file_get_contents($i18n_path), true)  : [],
@@ -75,7 +72,7 @@ function sib_get_icon_data() {
     ];
 
     // Store cache (12 hours)
-    set_transient($cache_key, $data, 12 * HOUR_IN_SECONDS);
+    set_transient(SIB_CACHE_KEY, $data, 12 * HOUR_IN_SECONDS);
 
     return $data;
 }
@@ -98,7 +95,7 @@ add_action('init', function () {
 
     // Get cached data
     $data = sib_get_icon_data();
-	$data['sprite'] = sib_get_sprite_url(); // always fresh	
+    $data['sprite'] = sib_get_sprite_url(); // always fresh
 
     // Inject into JS
     wp_add_inline_script(
@@ -111,123 +108,117 @@ add_action('init', function () {
     register_block_type(__DIR__, [
         'editor_script' => 'sib-icon-block-editor',
 
-		'render_callback' => function ($attributes) {
+        'render_callback' => function ($attributes) {
 
-			$icon = $attributes['icon'] ?? '';
-			if (!$icon) return '';
+            $icon = $attributes['icon'] ?? '';
+            if (!$icon) return '';
 
-			$sprite = sib_get_sprite_url();
+            $sprite = sib_get_sprite_url();
 
-			$size  = intval($attributes['size'] ?? 24);
-			$rotation = intval($attributes['rotation'] ?? 0);
+            $size     = intval($attributes['size'] ?? 24);
+            $rotation = intval($attributes['rotation'] ?? 0);
 
-			$variant = $attributes['variant'] ?? 'primary';
-			$label = $attributes['label'] ?? '';
+            $variant  = $attributes['variant'] ?? 'primary';
+            $label    = $attributes['label'] ?? '';
 
-			$iconColor = $attributes['iconColor'] ?? '';
-			$textColor = $attributes['textColor'] ?? '';
+            $iconColor = $attributes['iconColor'] ?? '';
+            $textColor = $attributes['textColor'] ?? '';
 
-			$iconPosition = $attributes['iconPosition'] ?? 'left';
-			
-			$flipH = !empty($attributes['flipH']);
-			$flipV = !empty($attributes['flipV']);			
+            $iconPosition = $attributes['iconPosition'] ?? 'left';
 
-			$justify = $attributes['justifyContent'] ?? 'flex-start';
-			$align   = $attributes['alignItems'] ?? 'center';
+            $flipH = !empty($attributes['flipH']);
+            $flipV = !empty($attributes['flipV']);
 
-			$url   = $attributes['url'] ?? '';
-			$target = !empty($attributes['opensInNewTab']) ? ' target="_blank"' : '';
+            $justify = $attributes['justifyContent'] ?? 'flex-start';
+            $align   = $attributes['alignItems'] ?? 'center';
 
-			$rel   = $attributes['rel'] ?? '';
-			if (!empty($attributes['opensInNewTab']) && empty($rel)) {
-				$rel = 'noopener noreferrer';
-			}
-			$rel_attr = $rel ? ' rel="' . esc_attr($rel) . '"' : '';
+            $url    = $attributes['url'] ?? '';
+            $target = !empty($attributes['opensInNewTab']) ? ' target="_blank"' : '';
 
-			/* -------- WRAPPER -------- */
+            $rel = $attributes['rel'] ?? '';
+            if (!empty($attributes['opensInNewTab']) && empty($rel)) {
+                $rel = 'noopener noreferrer';
+            }
+            $rel_attr = $rel ? ' rel="' . esc_attr($rel) . '"' : '';
 
-			$wrapper_style = 'display:flex;';
-			$wrapper_style .= 'justify-content:' . esc_attr($justify) . ';';
-			$wrapper_style .= 'align-items:' . esc_attr($align) . ';';
-			$wrapper_style .= 'width:auto;';
+            /* -------- WRAPPER -------- */
 
-			/* -------- FLEX DIRECTION -------- */
+            $wrapper_style  = 'display:flex;';
+            $wrapper_style .= 'justify-content:' . esc_attr($justify) . ';';
+            $wrapper_style .= 'align-items:' . esc_attr($align) . ';';
 
-			$flex_direction =
-				$iconPosition === 'right'  ? 'row-reverse' :
-				($iconPosition === 'top'   ? 'column' :
-				($iconPosition === 'bottom'? 'column-reverse' :
-											'row'));
+            /* -------- FLEX DIRECTION -------- */
 
-			/* -------- SVG -------- */
+            $flex_direction =
+                $iconPosition === 'right'  ? 'row-reverse' :
+                ($iconPosition === 'top'   ? 'column' :
+                ($iconPosition === 'bottom'? 'column-reverse' :
+                                            'row'));
 
-			$svg_style = 'width:' . $size . 'px;height:' . $size . 'px;';
-			if ($iconColor) {
-				$svg_style .= 'fill:' . esc_attr($iconColor) . ';';
-				$svg_style .= 'color:' . esc_attr($iconColor) . ';';
-			}
-			/*
-			if ($rotation) {
-				$svg_style .= 'transform:rotate(' . $rotation . 'deg);';
-			}
-			*/
-			$transform = '';
+            /* -------- SVG -------- */
 
-			if ($rotation) {
-				$transform .= 'rotate(' . $rotation . 'deg) ';
-			}
+            $svg_style = 'width:' . $size . 'px;height:' . $size . 'px;';
+            if ($iconColor) {
+                $svg_style .= 'fill:' . esc_attr($iconColor) . ';';
+                $svg_style .= 'color:' . esc_attr($iconColor) . ';';
+                $svg_style .= 'stroke:' . esc_attr($iconColor) . ';';
+            }
 
-			if ($flipH || $flipV) {
-				$scaleX = $flipH ? -1 : 1;
-				$scaleY = $flipV ? -1 : 1;
-				$transform .= 'scale(' . $scaleX . ',' . $scaleY . ')';
-			}
+            $transform = '';
 
-			if ($transform) {
-				$svg_style .= 'transform:' . trim($transform) . ';';
-			}			
-			
-			$svg = '<svg class="sib-icon" style="' . esc_attr($svg_style) . '">
-				<use href="' . esc_url($sprite) . '#' . esc_attr($icon) . '"></use>
-			</svg>';
+            if ($rotation) {
+                $transform .= 'rotate(' . $rotation . 'deg) ';
+            }
 
-			/* -------- BUTTON -------- */
+            if ($flipH || $flipV) {
+                $scaleX = $flipH ? -1 : 1;
+                $scaleY = $flipV ? -1 : 1;
+                $transform .= 'scale(' . $scaleX . ',' . $scaleY . ')';
+            }
 
-			$button_class = 'sib-button sib-' . esc_attr($variant) . ' ' . ($label ? 'has-label' : 'icon-only');
+            if ($transform) {
+                $svg_style .= 'transform:' . trim($transform) . ';';
+            }
 
-			$button_style = 'display:inline-flex;';
-			$button_style .= 'flex-direction:' . esc_attr($flex_direction) . ';';
-			$button_style .= 'align-items:flex-start;';
-			$button_style .= 'vertical-align:middle;';
-			$button_style .= 'gap:8px;';
+            $svg = '<svg class="sib-icon" style="' . esc_attr($svg_style) . '">
+                <use href="' . esc_url($sprite) . '#' . esc_attr($icon) . '"></use>
+            </svg>';
 
-			if ($textColor) {
-				$button_style .= 'color:' . esc_attr($textColor) . ';';
-			}
+            /* -------- BUTTON -------- */
 
-			$button = '<div class="' . $button_class . '" style="' . esc_attr($button_style) . '">';
+            $button_class = 'sib-button sib-' . esc_attr($variant) . ' ' . ($label ? 'has-label' : 'icon-only');
 
-			/* -------- CONTENT ORDER (same as JS) -------- */
+            $button_style  = 'display:inline-flex;';
+            $button_style .= 'flex-direction:' . esc_attr($flex_direction) . ';';
+            $button_style .= 'align-items:center;';
+            $button_style .= 'vertical-align:middle;';
+            $button_style .= 'gap:8px;';
 
-			$button .= $svg;
+            if ($textColor) {
+                $button_style .= 'color:' . esc_attr($textColor) . ';';
+            }
 
-			if ($label) {
-				$button .= '<span class="sib-label">' . esc_html($label) . '</span>';
-			}
+            $button = '<div class="' . $button_class . '" style="' . esc_attr($button_style) . '">';
 
-			$button .= '</div>';
+            $button .= $svg;
 
-			/* -------- LINK WRAP -------- */
+            if ($label) {
+                $button .= '<span class="sib-label">' . esc_html($label) . '</span>';
+            }
 
-			if ($url) {
-				$button = '<a href="' . esc_url($url) . '"' . $target . $rel_attr . ' class="sib-link">' . $button . '</a>';
-			}
+            $button .= '</div>';
 
-			/* -------- FINAL -------- */
+            /* -------- LINK WRAP -------- */
 
-			return '<div class="sib-wrapper" style="' . esc_attr($wrapper_style) . '">' . $button . '</div>';
-		}
-		
+            if ($url) {
+                $button = '<a href="' . esc_url($url) . '"' . $target . $rel_attr . ' class="sib-link">' . $button . '</a>';
+            }
+
+            /* -------- FINAL -------- */
+
+            return '<div class="sib-wrapper" style="' . esc_attr($wrapper_style) . '">' . $button . '</div>';
+        }
+
     ]);
 });
 

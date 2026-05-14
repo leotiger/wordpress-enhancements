@@ -1,12 +1,10 @@
 const { registerBlockType } = wp.blocks;
 const { useState, useEffect } = wp.element;
-// const { link, linkOff, rotateRight } = wp.icons;
 
 const {
   useBlockProps,
   InspectorControls,
   BlockControls,
-  AlignmentToolbar,
   LinkControl
 } = wp.blockEditor;
 
@@ -18,10 +16,8 @@ const {
   ToolbarGroup,
   ToolbarButton,
   ToolbarDropdownMenu,
-  ToolbarItem,
   Popover,
-  SelectControl,
-  Icon
+  SelectControl
 } = wp.components;
 
 const el = wp.element.createElement;
@@ -120,15 +116,12 @@ function IconSVG({ name, size, iconColor, rotation, flipH, flipV }) {
       style: {
         width: size,
         height: size,
-		...(iconColor ? {
-		  fill: iconColor,
-		  color: iconColor,
-		  stroke: iconColor
-		} : {}),		 
-		transform: `
-		  rotate(${rotation}deg)
-  		  scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`		  
-		//transform: `rotate(${rotation}deg)`
+        ...(iconColor ? {
+          fill: iconColor,
+          color: iconColor,
+          stroke: iconColor
+        } : {}),
+        transform: `rotate(${rotation}deg) scale(${flipH ? -1 : 1}, ${flipV ? -1 : 1})`
       }
     },
     el('use', {
@@ -177,19 +170,19 @@ registerBlockType('custom/svg-icon', {
     const {
       icon,
       size = 24,
-      color = '',
       rotation = 0,
-	  justifyContent = 'flex-start',
-	  alignItems = 'center',		
+      justifyContent = 'flex-start',
+      alignItems = 'center',
       url = '',
       opensInNewTab = false,
+      rel = '',
       label = '',
-	  variant = 'primary',
-	  iconColor = '',
-	  textColor = '',
-	  iconPosition = 'left',
-	  flipH = false,
-	  flipV = false		
+      variant = 'primary',
+      iconColor = '',
+      textColor = '',
+      iconPosition = 'left',
+      flipH = false,
+      flipV = false
     } = attributes;
 
     const [search, setSearch] = useState('');
@@ -198,18 +191,16 @@ registerBlockType('custom/svg-icon', {
 
     const debounced = useDebounce(search);
     const results = debounced ? searchIcons(debounced) : ICONS;
-	  
-	// const isVertical = iconPosition === 'top';
-	  
-	const flexDirection =
-	  iconPosition === 'right' ? 'row-reverse' :
-	  iconPosition === 'top' ? 'column' :
-	  iconPosition === 'bottom' ? 'column-reverse' :
-	  'row';
-	  
-	const blockProps = useBlockProps({
-	  className: 'sib-block'
-	});	  
+
+    const flexDirection =
+      iconPosition === 'right'  ? 'row-reverse' :
+      iconPosition === 'top'    ? 'column' :
+      iconPosition === 'bottom' ? 'column-reverse' :
+      'row';
+
+    const blockProps = useBlockProps({
+      className: 'sib-block'
+    });
 
     function selectIcon(name) {
       setAttributes({ icon: name });
@@ -225,69 +216,71 @@ registerBlockType('custom/svg-icon', {
         BlockControls,
         {},
 
-		el(
-		  ToolbarGroup,
-		  {},
+        el(
+          ToolbarGroup,
+          {},
 
-		  el(ToolbarDropdownMenu, {
-			  icon:
-				justifyContent === 'center' ? 'editor-aligncenter' :
-				justifyContent === 'flex-end' ? 'editor-alignright' :
-				'editor-alignleft',
+          el(ToolbarDropdownMenu, {
+            icon:
+              justifyContent === 'center'   ? 'editor-aligncenter' :
+              justifyContent === 'flex-end' ? 'editor-alignright' :
+              'editor-alignleft',
 
-			  label: 'Horizontal alignment',
+            label: 'Horizontal alignment',
 
-			  controls: [
-				{
-				  title: 'Align left',
-				  icon: 'editor-alignleft',
-				  isActive: justifyContent === 'flex-start',
-				  onClick: () => setAttributes({ justifyContent: 'flex-start' })
-				},
-				{
-				  title: 'Align center',
-				  icon: 'editor-aligncenter',
-				  isActive: justifyContent === 'center',
-				  onClick: () => setAttributes({ justifyContent: 'center' })
-				},
-				{
-				  title: 'Align right',
-				  icon: 'editor-alignright',
-				  isActive: justifyContent === 'flex-end',
-				  onClick: () => setAttributes({ justifyContent: 'flex-end' })
-				}
-			  ]
-		  }),
-		  el(ToolbarDropdownMenu, {
-			  icon:
-				alignItems === 'flex-start' ? 'arrow-up-alt' :
-				alignItems === 'flex-end' ? 'arrow-down-alt' :
-				'align-center',
+            controls: [
+              {
+                title: 'Align left',
+                icon: 'editor-alignleft',
+                isActive: justifyContent === 'flex-start',
+                onClick: () => setAttributes({ justifyContent: 'flex-start' })
+              },
+              {
+                title: 'Align center',
+                icon: 'editor-aligncenter',
+                isActive: justifyContent === 'center',
+                onClick: () => setAttributes({ justifyContent: 'center' })
+              },
+              {
+                title: 'Align right',
+                icon: 'editor-alignright',
+                isActive: justifyContent === 'flex-end',
+                onClick: () => setAttributes({ justifyContent: 'flex-end' })
+              }
+            ]
+          }),
 
-			  label: 'Vertical alignment',
+          el(ToolbarDropdownMenu, {
+            icon:
+              alignItems === 'flex-start' ? 'arrow-up-alt' :
+              alignItems === 'flex-end'   ? 'arrow-down-alt' :
+              'align-center',
 
-			  controls: [
-				{
-				  title: 'Align top',
-				  icon: 'arrow-up-alt',
-				  isActive: alignItems === 'flex-start',
-				  onClick: () => setAttributes({ alignItems: 'flex-start' })
-				},
-				{
-				  title: 'Align middle',
-				  icon: 'minus',
-				  isActive: alignItems === 'center',
-				  onClick: () => setAttributes({ alignItems: 'center' })
-				},
-				{
-				  title: 'Align bottom',
-				  icon: 'arrow-down-alt',
-				  isActive: alignItems === 'flex-end',
-				  onClick: () => setAttributes({ alignItems: 'flex-end' })
-				}
-			  ]
-		  })			
-		),	  
+            label: 'Vertical alignment',
+
+            controls: [
+              {
+                title: 'Align top',
+                icon: 'arrow-up-alt',
+                isActive: alignItems === 'flex-start',
+                onClick: () => setAttributes({ alignItems: 'flex-start' })
+              },
+              {
+                title: 'Align middle',
+                icon: 'minus',
+                isActive: alignItems === 'center',
+                onClick: () => setAttributes({ alignItems: 'center' })
+              },
+              {
+                title: 'Align bottom',
+                icon: 'arrow-down-alt',
+                isActive: alignItems === 'flex-end',
+                onClick: () => setAttributes({ alignItems: 'flex-end' })
+              }
+            ]
+          })
+        ),
+
         el(
           ToolbarGroup,
           {},
@@ -300,44 +293,45 @@ registerBlockType('custom/svg-icon', {
             }
           }, 'Icon'),
 
-  		  el(ToolbarButton, {
-		  	icon: 'admin-links',
-		  	label: 'Add link',
-		  	isPressed: !!url,
-		  	onClick: () => {
-				setLinkOpen(!isLinkOpen);
-				setIconOpen(false);
-		  	}
-		  }),			
+          el(ToolbarButton, {
+            icon: 'admin-links',
+            label: 'Add link',
+            isPressed: !!url,
+            onClick: () => {
+              setLinkOpen(!isLinkOpen);
+              setIconOpen(false);
+            }
+          }),
+
           url && el(ToolbarButton, {
             label: 'Remove link',
             icon: 'editor-unlink',
             onClick: () => {
-              setAttributes({
-                url: '',
-                opensInNewTab: false
-              });
+              setAttributes({ url: '', opensInNewTab: false, rel: '' });
             }
           }),
-		  el(ToolbarButton, {
-		  	icon: 'image-rotate',
-		  	label: 'Rotate 90°',
-		  	onClick: () => {
-				setAttributes({ rotation: (rotation + 90) % 360 });
-		  	}
-		  }),			
-		  el(ToolbarButton, {
-		  	icon: 'image-flip-horizontal',
-		  	label: 'Flip horizontal',
-		  	isPressed: flipH,
-		  	onClick: () => setAttributes({ flipH: !flipH })
-		  }),
-		  el(ToolbarButton, {
-		  	icon: 'image-flip-vertical',
-		  	label: 'Flip vertical',
-		  	isPressed: flipV,
-		  	onClick: () => setAttributes({ flipV: !flipV })
-		  })			
+
+          el(ToolbarButton, {
+            icon: 'image-rotate',
+            label: 'Rotate 90°',
+            onClick: () => {
+              setAttributes({ rotation: (rotation + 90) % 360 });
+            }
+          }),
+
+          el(ToolbarButton, {
+            icon: 'image-flip-horizontal',
+            label: 'Flip horizontal',
+            isPressed: flipH,
+            onClick: () => setAttributes({ flipH: !flipH })
+          }),
+
+          el(ToolbarButton, {
+            icon: 'image-flip-vertical',
+            label: 'Flip vertical',
+            isPressed: flipV,
+            onClick: () => setAttributes({ flipV: !flipV })
+          })
         )
       ),
 
@@ -349,21 +343,24 @@ registerBlockType('custom/svg-icon', {
         el(
           PanelBody,
           { title: 'Button Settings', initialOpen: true },
-		  el(SelectControl, {
-		  	label: 'Variant',
-		  	value: variant,
-		  	options: [
-				{ label: 'Primary', value: 'primary' },
-				{ label: 'Outline', value: 'outline' },
-				{ label: 'Ghost', value: 'ghost' }
-		  	],
-		  	onChange: (val) => setAttributes({ variant: val })
-		  }),
+
+          el(SelectControl, {
+            label: 'Variant',
+            value: variant,
+            options: [
+              { label: 'Primary', value: 'primary' },
+              { label: 'Outline', value: 'outline' },
+              { label: 'Ghost', value: 'ghost' }
+            ],
+            onChange: (val) => setAttributes({ variant: val })
+          }),
+
           el(TextControl, {
             label: 'Label',
             value: label,
             onChange: (val) => setAttributes({ label: val })
           }),
+
           el(RangeControl, {
             label: 'Size',
             value: size,
@@ -371,41 +368,37 @@ registerBlockType('custom/svg-icon', {
             max: 128,
             onChange: (v) => setAttributes({ size: v })
           }),
-		  el(SelectControl, {
-		  	label: 'Icon position',
-		  	value: iconPosition,
-		  	options: [
-				{ label: 'Left', value: 'left' },
-				{ label: 'Right', value: 'right' },
-				{ label: 'Above', value: 'top' },
-				{ label: 'Below', value: 'bottom' }
-		  	],
-		    onChange: (val) => setAttributes({ iconPosition: val })
-		  }),			
-		  /*
-          el(ColorPalette, {
-            value: color,
-            onChange: (c) => setAttributes({ color: c })
+
+          el(SelectControl, {
+            label: 'Icon position',
+            value: iconPosition,
+            options: [
+              { label: 'Left',  value: 'left' },
+              { label: 'Right', value: 'right' },
+              { label: 'Above', value: 'top' },
+              { label: 'Below', value: 'bottom' }
+            ],
+            onChange: (val) => setAttributes({ iconPosition: val })
           }),
-		  */
-		  el(
-			  PanelBody,
-			  { title: 'Icon', initialOpen: true },
 
-			  el(ColorPalette, {
-				value: iconColor,
-				onChange: (c) => setAttributes({ iconColor: c })
-			  })
-		  ),
-		  el(
-			  PanelBody,
-			  { title: 'Text', initialOpen: false },
+          el(
+            PanelBody,
+            { title: 'Icon colour', initialOpen: true },
+            el(ColorPalette, {
+              value: iconColor,
+              onChange: (c) => setAttributes({ iconColor: c })
+            })
+          ),
 
-			  el(ColorPalette, {
-				value: textColor,
-				onChange: (c) => setAttributes({ textColor: c })
-			  })
-		  ),			
+          el(
+            PanelBody,
+            { title: 'Text colour', initialOpen: false },
+            el(ColorPalette, {
+              value: textColor,
+              onChange: (c) => setAttributes({ textColor: c })
+            })
+          ),
+
           el(RangeControl, {
             label: 'Rotation',
             value: rotation,
@@ -414,49 +407,61 @@ registerBlockType('custom/svg-icon', {
             step: 1,
             onChange: (val) => setAttributes({ rotation: val })
           })
+        ),
+
+        el(
+          PanelBody,
+          { title: 'Link', initialOpen: false },
+
+          el(TextControl, {
+            label: 'Rel attribute',
+            help: 'e.g. noopener noreferrer sponsored',
+            value: rel,
+            onChange: (val) => setAttributes({ rel: val })
+          })
         )
       ),
 
-		/* -------- DISPLAY -------- */
+      /* -------- DISPLAY -------- */
 
-		el(
-			'div',
-			{
-				className: 'sib-wrapper',
-				style: {
-					justifyContent: justifyContent,
-					alignItems: alignItems,
-				}
-			},
+      el(
+        'div',
+        {
+          className: 'sib-wrapper',
+          style: {
+            justifyContent,
+            alignItems
+          }
+        },
 
-			icon
-			? el(
-				'div',
-				{
-					className: `sib-button sib-${variant} ${label ? 'has-label' : 'icon-only'}`,
-					style: {
-					  ...(textColor ? { color: textColor } : {}),
-					  display: 'inline-flex',
-					  flexDirection: flexDirection,
-					  alignItems: 'center',
-					  gap: '8px'
-					}				
-				},
-				el(IconSVG, { name: icon, size, iconColor, rotation, flipH, flipV }),
+        icon
+        ? el(
+          'div',
+          {
+            className: `sib-button sib-${variant} ${label ? 'has-label' : 'icon-only'}`,
+            style: {
+              ...(textColor ? { color: textColor } : {}),
+              display: 'inline-flex',
+              flexDirection,
+              alignItems: 'center',
+              gap: '8px'
+            }
+          },
+          el(IconSVG, { name: icon, size, iconColor, rotation, flipH, flipV }),
 
-				label &&
-				el('span', { className: 'sib-label' }, label)
-			)
+          label && el('span', { className: 'sib-label' }, label)
+        )
 
-			: el(
-				'button',
-				{
-					className: 'sib-empty',
-					onClick: () => setIconOpen(true)
-				},
-				'Select icon'
-			)
-		),
+        : el(
+          'button',
+          {
+            className: 'sib-empty',
+            onClick: () => setIconOpen(true)
+          },
+          'Select icon'
+        )
+      ),
+
       /* -------- ICON POPOVER -------- */
       isIconOpen &&
         el(
@@ -483,14 +488,12 @@ registerBlockType('custom/svg-icon', {
             onClose: () => setLinkOpen(false)
           },
           el(LinkControl, {
-            value: {
-              url,
-              opensInNewTab
-            },
+            value: { url, opensInNewTab },
             onChange: (val) => {
               setAttributes({
                 url: val.url,
-                opensInNewTab: val.opensInNewTab
+                opensInNewTab: val.opensInNewTab,
+                rel: val.rel || rel
               });
             }
           })
