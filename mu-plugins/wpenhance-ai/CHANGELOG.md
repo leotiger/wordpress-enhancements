@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1] — 2026-05-14
+
+### Fixed
+
+* **JS `<br>` strip not loading in browser** — the `admin.js` `<br>` strip
+  added in 1.0.0 was not being picked up because the enqueued asset version
+  was already `1.0.0`, so WordPress served the cached pre-strip file.
+  Asset versions bumped to `1.0.1` in `MetaBox::enqueue()` to force a fresh
+  browser fetch.
+
+---
+
 ## [1.0.0] — 2026-05-14
 
 First major release. Collects four fixes discovered during final testing.

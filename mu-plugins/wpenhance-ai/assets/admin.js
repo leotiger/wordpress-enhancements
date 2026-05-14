@@ -184,6 +184,12 @@ async function runFeature(featureKey, postId, params, resultEl) {
 
         if (data.type === 'content') {
 
+            // Strip <br> tags the model adds between blocks — they break the
+            // Gutenberg block parser.  Done here so it covers fresh results,
+            // cached results served before the PHP-side strip was in place,
+            // and any edge case where the PHP layer is bypassed.
+            data.output = data.output.replace(/<br\s*\/?>/gi, '');
+
             renderContentResult(resultEl, data, featureKey, postId);
 
         } else {

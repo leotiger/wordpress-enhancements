@@ -214,7 +214,9 @@ class Translation implements FeatureInterface {
                     'Preserve all WordPress block comments ' .
                     '(<!-- wp:... /-->), HTML tags, shortcodes, ' .
                     'and attributes exactly as they appear. ' .
-                    'Only translate the visible text content.',
+                    'Only translate the visible text content. ' .
+                    'Do NOT add any new HTML tags — especially not <br> or <br/> — ' .
+                    'that are not already present in the source.',
             ],
             [
                 'role'    => 'user',
