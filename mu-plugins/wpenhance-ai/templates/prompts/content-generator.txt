@@ -13,3 +13,5 @@ Requirements:
 
 Post title: {{title}}
 {{existing_content}}
+
+If hints or existing content are provided above, use them as the foundation and expand upon them fully. If no seed content is provided, generate the content from the title alone.

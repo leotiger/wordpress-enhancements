@@ -36,7 +36,9 @@ Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.2) for higher fideli
 
 ### Content Generator
 
-Drafts or rewrites post content from the title and any existing body text, directly from the editor panel. Two controls let the editor shape the output before generating:
+Drafts or rewrites post content directly from the editor panel. Three controls let the editor shape the output before generating:
+
+**Hints** — a free-text field for key points, ideas, or a rough structure. The AI uses these notes as the foundation for the generated content, expanding them into a full draft in the selected tone and format.
 
 **Tone** — Informative, Persuasive, Storytelling, Technical, or Conversational.
 
@@ -44,7 +46,7 @@ Drafts or rewrites post content from the title and any existing body text, direc
 
 Results appear in the same review panel used by Translation: the content is never applied automatically. The editor clicks **Apply to Editor** to dispatch the result to the Gutenberg block editor, or **Copy** to handle it manually.
 
-When the post already has content, it is passed to the model as context (stripped of HTML markup, capped at 6 000 characters). The model can extend or rewrite it rather than starting from a blank slate, making the feature useful at any stage of drafting — not just on empty posts.
+When hints are provided they take priority as the seed. When the Hints field is left empty and the post already has a body, that content is passed to the model as context instead (stripped of HTML markup, capped at 6 000 characters), so the model can extend or rewrite an existing draft. When both are absent the model generates from the title alone.
 
 Generated output uses native Gutenberg block markup (`<!-- wp:paragraph -->`, `<!-- wp:heading -->`, `<!-- wp:list -->`) so results slot directly into the block editor without post-processing.
 

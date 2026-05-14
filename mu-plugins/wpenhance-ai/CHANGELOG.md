@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.8.0] — 2026-05-14
+
+Adds a dedicated **Hints** field to the Content Generator, giving editors a clean way to seed generation with key points, ideas, or a rough structure without mixing that input with the post body.
+
+### UX Improvements
+
+* A **Hints** textarea now appears above the Tone and Output selectors in the Generate Content
+  panel. Editors can jot down bullet points, topic ideas, or a rough outline before generating —
+  the AI builds the full draft from those notes rather than from scratch.
+* When the Hints field is left empty, the feature falls back to the existing post body as context
+  (the previous behaviour), so the change is non-breaking for existing workflows.
+
+### Technical Notes
+
+* Hints are sanitized (`sanitize_textarea_field`) and capped at 2 000 characters server-side
+  before being injected into the prompt. The cap keeps hints focused while staying well within
+  token budgets.
+* When hints are provided they replace the existing-content section entirely — the two are never
+  mixed, keeping the prompt unambiguous.
+* The cache hash now includes the hints value, so changing the Hints field correctly invalidates
+  any previously cached result for the same tone + output-type combination.
+* `collectParams()` in `admin.js` is extended to query `.wpenhance-ai-input-textarea[data-feature-ref]`
+  elements alongside the existing `.wpenhance-ai-select` query, so hints are included in the
+  request payload without any feature-specific JS.
+* `MetaBox.php` now renders a `textarea` field type in its UI loop (in addition to `select`),
+  making the pattern available to any future feature that declares a `textarea` in
+  `get_ui_fields()`.
+
+### Added
+
+* **Hints textarea** — new `textarea` UI field in `ContentGenerator::get_ui_fields()`. Rendered
+  above the Tone and Output selectors; collected and sent as `hints` in the JSON request body.
+
+### Changed
+
+* `ContentGenerator::run()` — `$hints` (sanitized, max 2 000 chars) is extracted from `$params`.
+  If non-empty, it replaces the existing-content section in the prompt (`"Hints and key points to
+  build from:\n…"`); otherwise the post body fallback is used unchanged.
+* `ContentGenerator::get_field_defaults()` — returns `hints: ''` as the empty default.
+* `CacheStore` hash now includes `$hints` as an input, ensuring cache invalidation when hints change.
+* `templates/prompts/content-generator.txt` — closing instruction added: the model is told to use
+  any provided seed content as the foundation and fall back to the title alone when none is present.
+* `MetaBox.php` — `textarea` field type now supported in the UI rendering loop (outputs
+  `<textarea class="wpenhance-ai-input-textarea" data-field="…" data-feature-ref="…">`).
+* `admin.js` `collectParams()` — selector extended to include
+  `.wpenhance-ai-input-textarea[data-feature-ref]` alongside `.wpenhance-ai-select[data-feature-ref]`.
+
+---
+
 ## [0.7.0] — 2026-05-14
 
 Adds a Content Generator feature that drafts or rewrites post content directly from the editor panel, with selectable tone and output type.

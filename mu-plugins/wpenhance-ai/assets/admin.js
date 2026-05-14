@@ -297,6 +297,7 @@ function renderRefreshRow(featureKey, postId) {
 
 /**
  * Collect the values of any extra UI fields belonging to a feature.
+ * Handles both <select> and <textarea> input fields.
  */
 function collectParams(panel, featureKey) {
 
@@ -304,7 +305,8 @@ function collectParams(panel, featureKey) {
 
     panel
         .querySelectorAll(
-            `.wpenhance-ai-select[data-feature-ref="${featureKey}"]`
+            `.wpenhance-ai-select[data-feature-ref="${featureKey}"],` +
+            `.wpenhance-ai-input-textarea[data-feature-ref="${featureKey}"]`
         )
         .forEach((field) => {
             params[field.dataset.field] = field.value;

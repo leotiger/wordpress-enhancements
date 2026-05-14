@@ -89,6 +89,19 @@ class MetaBox {
                         <div class="wpenhance-ai-feature-fields">
                             <?php foreach ($ui_fields as $field): ?>
 
+                                <?php if ($field['type'] === 'textarea'): ?>
+                                    <label class="wpenhance-ai-label">
+                                        <?php echo esc_html($field['label']); ?>
+                                        <textarea
+                                            class="wpenhance-ai-input-textarea"
+                                            data-field="<?php echo esc_attr($field['name']); ?>"
+                                            data-feature-ref="<?php echo esc_attr($feature->get_key()); ?>"
+                                            rows="4"
+                                            placeholder="<?php echo esc_attr($field['placeholder'] ?? ''); ?>"
+                                        ><?php echo esc_textarea($defaults[$field['name']] ?? ''); ?></textarea>
+                                    </label>
+                                <?php endif; ?>
+
                                 <?php if ($field['type'] === 'select'): ?>
                                     <label class="wpenhance-ai-label">
                                         <?php echo esc_html($field['label']); ?>

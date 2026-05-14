@@ -61,6 +61,12 @@ class ContentGenerator implements FeatureInterface {
 
         return [
             [
+                'name'        => 'hints',
+                'type'        => 'textarea',
+                'label'       => 'Hints',
+                'placeholder' => 'Key points, ideas, or structure to build from…',
+            ],
+            [
                 'name'    => 'tone',
                 'type'    => 'select',
                 'label'   => 'Tone',
@@ -78,6 +84,7 @@ class ContentGenerator implements FeatureInterface {
     public function get_field_defaults(int $post_id): array {
 
         return [
+            'hints'        => '',
             'tone'         => 'informative',
             'content_type' => 'full_article',
         ];
@@ -113,6 +120,11 @@ class ContentGenerator implements FeatureInterface {
         $tone_label         = self::TONES[$tone];
         $content_type_label = self::CONTENT_TYPES[$content_type];
 
+        // ── Hints ─────────────────────────────────────────────────────────────
+        // When hints are provided they take priority over the post body.
+        // If no hints, fall back to existing post content as context.
+        $hints = mb_substr(trim(sanitize_textarea_field($params['hints'] ?? '')), 0, 2000);
+
         // ── Cache check ───────────────────────────────────────────────────────
         // Cache is keyed per tone + content_type combination.
         $cache_key = $this->get_key() . '_' . $tone . '_' . $content_type;
@@ -121,6 +133,7 @@ class ContentGenerator implements FeatureInterface {
             $post->post_content,
             $tone,
             $content_type,
+            $hints,
         ]);
 
         $cached = empty($params['force_refresh'])
@@ -143,13 +156,17 @@ class ContentGenerator implements FeatureInterface {
             ];
         }
 
-        // Include existing content only when the post already has a body,
-        // so the model can rewrite / extend rather than generate from scratch.
-        $existing_content = trim(wp_strip_all_tags($post->post_content));
-        $existing_section = $existing_content !== ''
-            ? "\n\nExisting content (use as context or rewrite as needed):\n" .
-              mb_substr($existing_content, 0, 6000)
-            : '';
+        // Use hints as the seed when provided; otherwise fall back to the
+        // existing post body so the model can rewrite / extend it.
+        if ($hints !== '') {
+            $seed_section = "\n\nHints and key points to build from:\n" . $hints;
+        } else {
+            $existing_content = trim(wp_strip_all_tags($post->post_content));
+            $seed_section     = $existing_content !== ''
+                ? "\n\nExisting content (use as context or rewrite as needed):\n" .
+                  mb_substr($existing_content, 0, 6000)
+                : '';
+        }
 
         $prompt = str_replace(
             ['{{title}}', '{{tone}}', '{{content_type}}', '{{existing_content}}'],
@@ -157,7 +174,7 @@ class ContentGenerator implements FeatureInterface {
                 $post->post_title,
                 $tone_label,
                 $content_type_label,
-                $existing_section,
+                $seed_section,
             ],
             $prompt_tpl
         );
