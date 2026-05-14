@@ -154,45 +154,37 @@ class Translation implements FeatureInterface {
             ];
         }
 
-        $prompt = str_replace(
-            ['{{language}}', '{{title}}', '{{content}}'],
-            [
-                $language_name,
-                $post->post_title,
-                mb_substr($placeholder_content, 0, 20000),
-            ],
-            $prompt
-        );
+        // ── Build optional extra-output sections ─────────────────────────────
+        // All additional output sections (footnotes, block attrs) are assembled
+        // first so they can be injected into the {{extra_output}} placeholder
+        // in the template.  Putting them inside the template — rather than
+        // appending after it — eliminates the prompt conflict that previously
+        // caused the model to skip these sections: the template used to say
+        // "nothing else before or after the content body" and then we appended
+        // instructions telling the model to output ===FOOTNOTES=== afterward,
+        // which it silently ignored.
+
+        $has_footnotes  = false;
+        $extra_output   = '';
+        $extra_sections = [];
 
         // ── WordPress core footnotes (_footnotes post meta) ───────────────────
-        // Footnotes are stored as a JSON array of {id, content} objects.
-        // We append them to the prompt so they are translated in the same call,
-        // keeping terminology consistent with the main content.
-        // Note: $footnotes_raw was already read above for the cache hash.
-        $has_footnotes = false;
-
         if ($footnotes_raw !== '') {
             $decoded = json_decode($footnotes_raw, true);
             if (is_array($decoded) && !empty($decoded)) {
-                $has_footnotes = true;
-                $prompt .= "\n\n" .
-                    "The post also contains footnotes stored as a JSON array below.\n" .
-                    "Translate only each \"content\" field value; leave every \"id\" value unchanged.\n" .
-                    "After the translated page content output this exact separator on its own line:\n" .
+                $has_footnotes    = true;
+                $extra_sections[] =
+                    "After the translated content, output this exact separator on its own line:\n" .
                     "===FOOTNOTES===\n" .
-                    "Then output the complete translated footnotes JSON array.\n\n" .
+                    "Then output the complete translated footnotes JSON array.\n" .
+                    "Translate only each \"content\" field value; leave every \"id\" value unchanged.\n\n" .
                     "Footnotes JSON:\n" . $footnotes_raw;
             }
         }
 
         // ── Block attribute strings ───────────────────────────────────────────
-        // When the extractor found translatable attrs, ask the model to
-        // translate them in the same call (consistent terminology) and return
-        // them as a JSON object after an ===ATTRS=== separator — last section,
-        // after ===FOOTNOTES=== if that section is also present.
         if (!empty($attr_map)) {
-            $prompt .= "\n\n" .
-                "The block content also contains translatable text stored inside block comment attributes.\n" .
+            $extra_sections[] =
                 "After the translated content (and after the ===FOOTNOTES=== section if present), " .
                 "output this exact separator on its own line:\n" .
                 "===ATTRS===\n" .
@@ -201,6 +193,21 @@ class Translation implements FeatureInterface {
                 "Block attribute strings:\n" .
                 wp_json_encode($attr_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
+
+        if (!empty($extra_sections)) {
+            $extra_output = "\n\n" . implode("\n\n", $extra_sections);
+        }
+
+        $prompt = str_replace(
+            ['{{language}}', '{{title}}', '{{content}}', '{{extra_output}}'],
+            [
+                $language_name,
+                $post->post_title,
+                mb_substr($placeholder_content, 0, 20000),
+                $extra_output,
+            ],
+            $prompt
+        );
 
         $provider = ProviderFactory::make(
             $this->get_worker_config()

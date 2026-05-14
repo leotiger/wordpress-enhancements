@@ -10,12 +10,13 @@ Rules:
 - Maintain the same tone, style, and formatting.
 - Do not introduce any HTML tags that are not present in the source —
   in particular, never add <br> or <br /> tags.
-- Do not add any explanations, notes, or commentary.
+- Do not add any preamble, explanations, notes, or commentary.
 
+Output format:
 Begin your response with this exact line:
 ===TITLE===
 Then output the translated post title on the very next line (no blank line).
-Then output the translated content body — nothing else before or after.
+Then output the translated content body.{{extra_output}}
 
 Title: {{title}}
 

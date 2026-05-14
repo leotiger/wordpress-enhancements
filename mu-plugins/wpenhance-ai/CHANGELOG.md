@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.3] — 2026-05-14
+
+### Fixed
+
+* **Footnotes not translated** — the translation prompt template ended with
+  "nothing else before or after the content body", which directly contradicted
+  the footnotes instructions appended afterward telling the model to output an
+  `===FOOTNOTES===` section. The model obeyed the earlier restriction and
+  silently dropped the footnotes output. Fixed by introducing an
+  `{{extra_output}}` placeholder in `translation.txt` so that footnote and
+  block-attribute instructions are injected *inside* the template as part of a
+  single coherent prompt, rather than appended after a conflicting constraint.
+  The same change applies to `===ATTRS===` (block attribute translations).
+
+---
+
 ## [1.0.2] — 2026-05-14
 
 ### Fixed
