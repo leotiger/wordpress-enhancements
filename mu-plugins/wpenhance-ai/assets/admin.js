@@ -11,7 +11,7 @@ document.addEventListener('click', async (event) => {
     const featureKey = button.dataset.feature;
     const postId     = button.dataset.postId;
     const panel      = button.closest('.wpenhance-ai-panel');
-    const result     = panel.querySelector('.wpenhance-ai-result');
+    const result     = button.closest('.wpenhance-ai-feature-group').querySelector('.wpenhance-ai-result');
     const params     = collectParams(panel, featureKey);
 
     button.disabled = true;
@@ -32,7 +32,7 @@ document.addEventListener('click', async (event) => {
     const featureKey = button.dataset.feature;
     const postId     = button.dataset.postId;
     const panel      = button.closest('.wpenhance-ai-panel');
-    const result     = panel.querySelector('.wpenhance-ai-result');
+    const result     = button.closest('.wpenhance-ai-result');
     const params     = collectParams(panel, featureKey);
 
     params.force_refresh = true;
@@ -61,19 +61,22 @@ document.addEventListener('click', async (event) => {
 
     if (!textarea) return;
 
-    // Apply translated content (and title when present) to the editor.
-    if (window.wp?.data) {
+    // Gutenberg loads meta boxes inside an iframe — wp.data lives in the
+    // parent window, not in this iframe context.  window.parent.wp.data
+    // is the live editor store; dispatching to window.wp.data (the iframe)
+    // is a no-op that leaves the editor unchanged.
+    if (window.parent.wp?.data) {
 
         const payload = { content: textarea.value };
         if (translatedTitle) payload.title = translatedTitle;
 
-        wp.data
+        window.parent.wp.data
             .dispatch('core/editor')
             .editPost(payload);
 
     } else {
 
-        // Classic editor fallback.
+        // Classic editor: no iframe, #content and #title are in this document.
         const classicEditor = document.querySelector('#content');
         if (classicEditor) classicEditor.value = textarea.value;
 

@@ -34,7 +34,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.js',
             ['wp-api'],
-            '0.3.0',
+            '1.0.0',
             true
         );
 
@@ -51,7 +51,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.css',
             [],
-            '0.3.0'
+            '1.0.0'
         );
     }
 
@@ -138,11 +138,11 @@ class MetaBox {
                         <?php echo esc_html($feature->get_label()); ?>
                     </button>
 
+                    <div class="wpenhance-ai-result"></div>
+
                 </div>
 
             <?php endforeach; ?>
-
-            <div class="wpenhance-ai-result"></div>
 
         </div>
         <?php

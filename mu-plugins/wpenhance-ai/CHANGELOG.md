@@ -2,34 +2,50 @@
 
 ## [1.0.0] — 2026-05-14
 
-The post title was not being translated. It was passed to the model as context
-but the prompt instructed the model to return only the content body, and the
-JS dispatcher only applied `content` to the editor — so after every translation
-the title stayed in the original language.
+First major release. Collects three fixes discovered during final testing.
 
-### Added
+### Fixed
 
-* **Title translation** — the translated post title is now returned alongside
-  the content body and applied to the editor in the same **Apply to Editor**
-  click. No extra steps required.
+* **Apply to Editor had no effect in Gutenberg** — WordPress renders legacy
+  meta boxes inside a hidden `<iframe>`. Scripts inside that iframe have their
+  own `window`, so `wp.data.dispatch('core/editor')` was dispatching to the
+  iframe's isolated store, not the main editor's. Changed to
+  `window.parent.wp.data.dispatch('core/editor')` which crosses the iframe
+  boundary to reach the live editor store. Classic editor meta boxes are not
+  iframed, so the `#content` / `#title` fallback path is unchanged.
+
+* **Post title was not translated** — the title was passed to the model as
+  context only; the prompt instructed the model to return the content body
+  alone, and the JS only dispatched `content` to the editor. The translated
+  title now comes back via a `===TITLE===` separator, is included in the
+  payload as `translated_title`, and is applied to the editor alongside
+  content in the same **Apply to Editor** click.
+
+* **All features shared a single result panel** — clicking any feature
+  replaced the output of every other feature. Each feature group now has its
+  own result container directly below its action button, so Translation,
+  Content Generator, Meta Description, and Excerpt results are all visible
+  at the same time and never overwrite each other.
 
 ### Changed
 
-* `templates/prompts/translation.txt` — output instruction replaced: the model
-  now opens its response with `===TITLE===` followed by the translated title on
-  the next line, then the content body. The previous "Return ONLY the translated
-  content" line is removed.
-* `Translation::run()` — `===TITLE===` is parsed first (before footnotes and
-  attrs sections); `$translated_title` is extracted from the line immediately
-  after the separator and included in the payload as `translated_title` when
-  non-empty. `$post->post_title` is added to the cache hash so a title change
-  correctly invalidates any cached translation.
-* `admin.js` `renderContentResult()` — stores `data.translated_title` in a
-  `data-translated-title` attribute on the result container.
-* `admin.js` Apply to Editor handler — reads `data-translated-title` from the
-  result container and passes `title` alongside `content` in the `editPost()`
-  dispatch. Classic editor fallback also sets `#title` when a translated title
-  is present.
+* `templates/prompts/translation.txt` — model now opens its response with
+  `===TITLE===` + translated title before the content body.
+* `Translation::run()` — parses `===TITLE===` first; includes
+  `translated_title` in the payload; adds `$post->post_title` to the cache
+  hash so a title change invalidates cached translations.
+* `admin.js` Apply to Editor handler — uses `window.parent.wp.data` for
+  Gutenberg; passes `title` alongside `content` in `editPost()`; sets
+  `#title` in the classic editor fallback.
+* `admin.js` `renderContentResult()` — stores `data.translated_title` in
+  `data-translated-title` on the result container.
+* `MetaBox::render()` — `.wpenhance-ai-result` moved inside each
+  `.wpenhance-ai-feature-group` (was a single div after the loop).
+* `admin.js` feature-button handler — resolves result via
+  `button.closest('.wpenhance-ai-feature-group').querySelector('.wpenhance-ai-result')`.
+* `admin.js` refresh handler — resolves result via
+  `button.closest('.wpenhance-ai-result')` (refresh button is already inside it).
+* Asset version bumped to `1.0.0` in `MetaBox::enqueue()`.
 
 ---
 
