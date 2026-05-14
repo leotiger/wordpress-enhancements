@@ -2,7 +2,7 @@
  * Plugin Name: Lightbox Overlay Control (MU Module)
  * Description: Adds overlay styling controls to Gutenberg Image & Gallery lightbox.
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1.3
  */
 
 (function () {
@@ -13,6 +13,7 @@
   var images = [];
   var current = 0;
   var overlayData = null;
+  var activeKeyHandler = null;
 
 	function getImages(container) {
 	  //var slides = container.children;
@@ -79,13 +80,17 @@
 		var overlay = document.createElement('div');
 		overlay.className = 'loc-carousel-overlay';
 
+		overlay.setAttribute('role', 'dialog');
+		overlay.setAttribute('aria-modal', 'true');
+		overlay.setAttribute('aria-label', 'Image lightbox');
+
 		overlay.innerHTML =
-			'<button class="loc-close" aria-label="Close">x</button>' +
-			'<button class="loc-prev">‹</button>' +
-			'<button class="loc-next">›</button>' +
+			'<button class="loc-close" aria-label="Close">&#x2715;</button>' +
+			'<button class="loc-prev" aria-label="Previous image">&#x2039;</button>' +
+			'<button class="loc-next" aria-label="Next image">&#x203a;</button>' +
 			'<div class="loc-carousel-backdrop"></div>' +
 			'<div class="loc-carousel-ui">' +
-			'<img class="loc-img" />' +
+			'<img class="loc-img" alt="" />' +
 			'</div>';
 
 		document.body.appendChild(overlay);
@@ -93,6 +98,10 @@
 		var img = overlay.querySelector('.loc-img');
 
 		function close() {
+			if (activeKeyHandler) {
+				document.removeEventListener('keydown', activeKeyHandler);
+				activeKeyHandler = null;
+			}
 			overlay.remove();
 		}
 
@@ -112,17 +121,11 @@
 			render();
 		};
 
-		// 🔥 NEW: close when clicking the image
-		/*
-		img.onclick = function () {
-			//e.stopPropagation();
-			close();
-		};
-		*/
+		// close when clicking the image
 		img.onclick = function (e) {
-		  e.stopPropagation(); // 🔥 prevents bubbling issues
+		  e.stopPropagation();
 		  close();
-		};		
+		};
 		
 		// close when clicking outside UI
 		overlay.onclick = function (e) {
@@ -183,27 +186,21 @@
 		});		
 
 		function keyHandler(e) {
-			if (!document.body.contains(overlay)) {
-				document.removeEventListener('keydown', keyHandler);
-				return;
-			}
-
 			if (e.key === 'ArrowRight') {
 				current = (current + 1) % images.length;
 				render();
-			}
-
-			if (e.key === 'ArrowLeft') {
+			} else if (e.key === 'ArrowLeft') {
 				current = (current - 1 + images.length) % images.length;
 				render();
-			}
-
-			if (e.key === 'Escape') {
+			} else if (e.key === 'Escape') {
 				close();
 			}
 		}
 
-		document.removeEventListener('keydown', keyHandler);
+		if (activeKeyHandler) {
+			document.removeEventListener('keydown', activeKeyHandler);
+		}
+		activeKeyHandler = keyHandler;
 		document.addEventListener('keydown', keyHandler);
 
 		applyOverlayStyle(overlay);

@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.1.3] - 2026-05-14
+
+### Fixed
+- Fixed `keydown` handler accumulation in `carousel-lightbox.js`: each lightbox open previously attached a new listener without reliably removing the previous one (due to new function reference per call), causing stacked handlers across multiple open/close cycles. Now uses a module-level `activeKeyHandler` reference cleaned up in `close()`.
+- Removed broken `keydown` handler in `frontend.js` that referenced undefined `showNext()`, `showPrev()`, and `closeLightbox()` functions, which would throw a `ReferenceError` whenever the WP native lightbox was open and a key was pressed.
+- Fixed `carousel-lightbox.js` asset enqueue using a hardcoded `'1.0'` version string; now uses `filemtime()` for proper cache busting, consistent with other enqueued assets.
+- Fixed `carousel-lightbox.css` enqueue missing a version argument; now uses `filemtime()`.
+- Fixed `lazyload` cleanup loop in the footer hydration script to also set `src`/`srcset` from `data-src`/`data-srcset` on matched images, and extended the selector to include `img.lazyloading` in addition to `img.lazyload`.
+- Fixed `loc-prev` and `loc-next` buttons appearing below vertical center (`top: 50%` without `transform: translateY(-50%)`).
+- Fixed `z-index:3` missing space (cosmetic, now `z-index: 3`).
+
+### Improved
+- Added `role="dialog"`, `aria-modal="true"`, and `aria-label="Image lightbox"` to the carousel overlay for screen reader compatibility.
+- Added `aria-label="Previous image"` and `aria-label="Next image"` to prev/next navigation buttons.
+- Replaced text character `x` in the close button with the proper `&#x2715;` (✕) symbol; replaced `‹`/`›` entities with their correct Unicode equivalents.
+- Added `alt=""` to the lightbox `<img>` element to suppress redundant screen reader announcements.
+- Added hover opacity transition to all lightbox control buttons for better visual feedback.
+- Added `debounce` (50ms) to the `MutationObserver` callback in `frontend.js` to reduce excessive `querySelector` calls on busy DOM mutations.
+- Touch devices now keep the close button visible; only prev/next are hidden (swipe gestures handle navigation).
+- Unified all file version headers to `1.1.3`.
+
 ## [1.1.2] - 2026-05-11
 
 ### Fixed

@@ -3,7 +3,7 @@
  * Plugin Name: Lightbox Overlay Carousel for Carousel Slider Block (MU Module)
  * Description: Adds overlay carousel for images included in Carousel Slider Block.
  * Author: Uli Hake
- * Version: 1.1.2
+ * Version: 1.1.3
  */
 
 if (!defined('ABSPATH')) exit;
@@ -37,15 +37,17 @@ add_action('wp_enqueue_scripts', function () {
 	
     wp_enqueue_script(
         'loc-carousel-lightbox',
-        plugin_dir_url(__FILE__) . 'assets/carousel-lightbox.js',
+        LOC_URL . 'assets/carousel-lightbox.js',
         [],
-        '1.0',
+        filemtime(LOC_PATH . '/assets/carousel-lightbox.js'),
         true
-    );	
+    );
 
     wp_enqueue_style(
         'loc-carousel-lightbox',
-        plugin_dir_url(__FILE__) . 'assets/carousel-lightbox.css'
+        LOC_URL . 'assets/carousel-lightbox.css',
+        [],
+        filemtime(LOC_PATH . '/assets/carousel-lightbox.css')
     );
 	
     wp_enqueue_style(
@@ -101,7 +103,15 @@ add_action('wp_footer', function () {
 
 		});
 
-		container.querySelectorAll('img.lazyload').forEach(img => {
+		container.querySelectorAll('img.lazyload, img.lazyloading').forEach(img => {
+
+			if (img.dataset.src) {
+				img.src = img.dataset.src;
+			}
+
+			if (img.dataset.srcset) {
+				img.srcset = img.dataset.srcset;
+			}
 
 			img.classList.remove('lazyload');
 			img.classList.remove('lazyloading');

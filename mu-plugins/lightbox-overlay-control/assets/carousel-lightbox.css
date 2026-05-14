@@ -2,7 +2,7 @@
  * Plugin Name: Lightbox Overlay Control (MU Module)
  * Description: Adds overlay styling controls to Gutenberg Image & Gallery lightbox.
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1.3
  */
 
 .loc-carousel-overlay {
@@ -41,7 +41,17 @@
   color: white;
   font-size: 2rem;
   cursor: pointer;
-  z-index:3;
+  z-index: 3;
+  line-height: 1;
+  padding: 0.5rem;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.loc-prev:hover,
+.loc-next:hover,
+.loc-close:hover {
+  opacity: 1;
 }
 
 .loc-close {
@@ -65,18 +75,19 @@
 .loc-prev {
   left: 10px;
   top: 50%;
+  transform: translateY(-50%);
 }
 
 .loc-next {
   right: 10px;
   top: 50%;
+  transform: translateY(-50%);
 }
 
-/* hide controls on touch devices */
+/* hide prev/next on touch devices — swipe handles navigation */
 @media (hover: none) and (pointer: coarse) {
   .loc-prev,
-  .loc-next,
-  .loc-close {
+  .loc-next {
     display: none;
   }
 }

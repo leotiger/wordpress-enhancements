@@ -2,7 +2,7 @@
  * Plugin Name: Lightbox Overlay Control (MU Module)
  * Description: Adds overlay styling controls to Gutenberg Image & Gallery lightbox.
  * Author: Uli Hake
- * Version: 1.1
+ * Version: 1.1.3
  */
 
 (function () {
@@ -81,31 +81,11 @@
     true
   );
 
-	document.addEventListener('keydown', function (e) {
-		// Only act if lightbox is open
-		const lightbox = document.querySelector('.loc-lightbox.active');
-		if (!lightbox) return;
+	var overlayDebounceTimer = null;
 
-		switch (e.key) {
-			case 'ArrowRight':
-				e.preventDefault();
-				showNext(); // 👉 your existing function
-				break;
-
-			case 'ArrowLeft':
-				e.preventDefault();
-				showPrev(); // 👉 your existing function
-				break;
-
-			case 'Escape':
-				e.preventDefault();
-				closeLightbox(); // optional but expected UX
-				break;
-		}
-	});	
-	
 	var observer = new MutationObserver(function () {
-		applyOverlay();
+		clearTimeout(overlayDebounceTimer);
+		overlayDebounceTimer = setTimeout(applyOverlay, 50);
 	});
 
 	observer.observe(document.body, {
