@@ -1,18 +1,23 @@
 /**
  * Accordion Scroll - improved UI behaviour for users
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.1
  */
 
 (function () {
+	const cfg                = window.accordionScrollConfig || {};
+	const HEADER_SELECTOR    = cfg.headerSelector      || '.site-header';
+	const FALLBACK_OFFSET    = cfg.fallbackOffset      ?? 110;
+	const VISIBILITY_THRESHOLD = cfg.visibilityThreshold ?? 0.3;
+
 	document.addEventListener('DOMContentLoaded', () => {
-		const OFFSET = document.querySelector('.site-header')?.offsetHeight || 110;
-		//const OFFSET = 80;
+		const header = document.querySelector(HEADER_SELECTOR);
+		const OFFSET = header ? header.offsetHeight : FALLBACK_OFFSET;
 
 		const items = document.querySelectorAll('.wp-block-accordion-item');
 		if (!items.length) return;
 
-		// Track items open on load (openByDefault)
+		// Track items open on load (openByDefault) to skip the initial scroll
 		const initiallyOpen = new WeakSet();
 		items.forEach((item) => {
 			if (item.classList.contains('is-open')) {
@@ -29,10 +34,10 @@
 
 				const item = mutation.target;
 
-				// Only react when opening
+				// Only react when the item is opening
 				if (!item.classList.contains('is-open')) return;
 
-				// Ignore initial open state
+				// Skip items that were open on page load (openByDefault)
 				if (initiallyOpen.has(item)) {
 					initiallyOpen.delete(item);
 					return;
@@ -46,17 +51,15 @@
 				requestAnimationFrame(() => {
 					const rect = button.getBoundingClientRect();
 
-					const isVisible =
-						  rect.top >= 0 &&
-						  rect.top <= window.innerHeight * 0.3;
+					// Already near the top of the viewport — no scroll needed
+					const isNearTop =
+						rect.top >= 0 &&
+						rect.top <= window.innerHeight * VISIBILITY_THRESHOLD;
 
-					if (isVisible) return;
-
-					const targetY =
-						  rect.top + window.scrollY - OFFSET;
+					if (isNearTop) return;
 
 					window.scrollTo({
-						top: targetY,
+						top: rect.top + window.scrollY - OFFSET,
 						behavior: 'smooth',
 					});
 				});
