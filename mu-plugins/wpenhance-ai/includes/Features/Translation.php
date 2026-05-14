@@ -301,12 +301,20 @@ class Translation implements FeatureInterface {
         }
 
         // ── Strip stray <br> tags ─────────────────────────────────────────────
-        // Models sometimes add <br> tags to "preserve" newlines between blocks.
-        // Only strip them when the original had none — this avoids removing
-        // intentional soft line breaks (Shift+Enter) the editor may have used.
-        if (!preg_match('/<br[\s\/]*>/i', $post->post_content)) {
-            $translated_content = preg_replace('/<br[\s\/]*>/i', '', $translated_content);
-        }
+        // Models add <br> tags to "preserve" newlines between blocks, breaking
+        // the block parser.  The correct boundary is element context, not the
+        // whole document: <br> inside a <p> is a legitimate Gutenberg soft
+        // line break (Shift+Enter) and must be kept; <br> anywhere outside a
+        // <p> is always a model artefact and must be removed.
+        $translated_content = preg_replace_callback(
+            '/(<p(?:\s[^>]*)?>.*?<\/p>)|(<br[\s\/]*>)/is',
+            static function (array $m): string {
+                // Matched a <p>…</p> block — return it untouched.
+                // Matched a stray <br> outside any <p> — strip it.
+                return $m[1] !== '' ? $m[1] : '';
+            },
+            $translated_content
+        );
 
         $payload = [
             'output'   => $translated_content,

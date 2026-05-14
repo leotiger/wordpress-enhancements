@@ -25,10 +25,13 @@ First major release. Collects four fixes discovered during final testing.
   or `<br />` tags to "preserve" newlines between blocks, breaking the block
   parser. Fixed with two layers: an explicit prompt rule added to both
   `translation.txt` and `content-generator.txt` ("do not introduce `<br>`
-  tags"), and a `preg_replace` safety net in PHP. `Translation::run()` strips
-  them only when the original post content had none, preserving any
-  intentional soft line breaks (Shift+Enter). `ContentGenerator::run()` strips
-  them unconditionally since generated Gutenberg markup should never need them.
+  tags"), and a PHP safety net. `Translation::run()` uses
+  `preg_replace_callback` to strip `<br>` tags outside `<p>` elements only —
+  `<br>` inside a `<p>` is a legitimate Gutenberg soft line break (Shift+Enter)
+  and is preserved. `ContentGenerator::run()` strips all `<br>` unconditionally
+  since generated Gutenberg markup should never contain them. Cached
+  translations carrying stray `<br>` tags must be force-refreshed via
+  **↺ Refresh** to pick up the fix.
 
 * **All features shared a single result panel** — clicking any feature
   replaced the output of every other feature. Each feature group now has its
