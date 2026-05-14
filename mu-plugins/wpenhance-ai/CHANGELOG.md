@@ -21,17 +21,19 @@ First major release. Collects four fixes discovered during final testing.
   payload as `translated_title`, and is applied to the editor alongside
   content in the same **Apply to Editor** click.
 
-* **`<br>` tags injected into block markup** — models commonly add `<br>`
-  or `<br />` tags to "preserve" newlines between blocks, breaking the block
-  parser. Fixed with two layers: an explicit prompt rule added to both
+* **`<br>` tags injected into block markup** — models reliably hallucinate
+  `<br>` tags between blocks to "preserve" newlines, breaking the Gutenberg
+  block parser. Fixed with two layers: an explicit prompt rule in both
   `translation.txt` and `content-generator.txt` ("do not introduce `<br>`
-  tags"), and a PHP safety net. `Translation::run()` uses
-  `preg_replace_callback` to strip `<br>` tags outside `<p>` elements only —
-  `<br>` inside a `<p>` is a legitimate Gutenberg soft line break (Shift+Enter)
-  and is preserved. `ContentGenerator::run()` strips all `<br>` unconditionally
-  since generated Gutenberg markup should never contain them. Cached
-  translations carrying stray `<br>` tags must be force-refreshed via
-  **↺ Refresh** to pick up the fix.
+  tags"), and an unconditional `preg_replace` safety net in both
+  `Translation::run()` and `ContentGenerator::run()`. Stripping all `<br>`
+  tags is safe because the translation prompt already instructs the model to
+  preserve HTML exactly — any `<br>` legitimately present in the original
+  should survive that instruction; any it hallucinates is removed. The worst
+  case is losing a soft line break (Shift+Enter) inside a paragraph, a trivial
+  manual fix, whereas leaving a stray `<br>` breaks block structure entirely.
+  Cached translations must be force-refreshed via **↺ Refresh** to pick up
+  the fix.
 
 * **All features shared a single result panel** — clicking any feature
   replaced the output of every other feature. Each feature group now has its
