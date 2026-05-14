@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.0.2] — 2026-05-14
+
+### Fixed
+
+* **Root cause of `<br>` corruption identified and fixed** — the actual source
+  was `escapeHtml()` in `admin.js`, which used the `div.innerText /
+  div.innerHTML` DOM trick to escape HTML. The browser converts every `\n`
+  newline to a `<br>` element when reading `innerHTML` back, so every newline
+  between a Gutenberg block comment and its inner HTML —
+  `<!-- wp:paragraph -->\n<p>…` — was silently rewritten to
+  `<!-- wp:paragraph --><br><p>…` before the string was placed into the
+  textarea. This happened client-side, after all PHP and JS strip passes had
+  already run, which is why none of the earlier fixes had any effect.
+  Replaced with a plain string-replacement escape that only substitutes `&`,
+  `<`, `>`, `"`, and `'` — leaving newlines intact.
+
+---
+
 ## [1.0.1] — 2026-05-14
 
 ### Fixed

@@ -364,11 +364,19 @@ function escapeAttr(value) {
 
 /**
  * Safely escape a string for use inside innerHTML.
+ *
+ * Replaces only the five characters that are unsafe in HTML contexts.
+ * Intentionally avoids the div.innerText / div.innerHTML trick because
+ * that approach converts \n newlines to <br> elements — which corrupts
+ * Gutenberg block markup where newlines between block comments and inner
+ * HTML are structurally meaningful.
  */
 function escapeHtml(value) {
 
-    const div     = document.createElement('div');
-    div.innerText = String(value);
-
-    return div.innerHTML;
+    return String(value)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
+        .replace(/'/g,  '&#39;');
 }
