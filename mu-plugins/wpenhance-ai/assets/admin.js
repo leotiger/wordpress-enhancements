@@ -54,24 +54,33 @@ document.addEventListener('click', async (event) => {
 
     if (!button) return;
 
-    const panel    = button.closest('.wpenhance-ai-panel');
-    const result   = button.closest('.wpenhance-ai-content-result');
-    const textarea = panel.querySelector('.wpenhance-ai-textarea');
+    const panel           = button.closest('.wpenhance-ai-panel');
+    const result          = button.closest('.wpenhance-ai-content-result');
+    const textarea        = panel.querySelector('.wpenhance-ai-textarea');
+    const translatedTitle = result?.dataset.translatedTitle || '';
 
     if (!textarea) return;
 
-    // Apply translated content to the editor.
+    // Apply translated content (and title when present) to the editor.
     if (window.wp?.data) {
+
+        const payload = { content: textarea.value };
+        if (translatedTitle) payload.title = translatedTitle;
 
         wp.data
             .dispatch('core/editor')
-            .editPost({ content: textarea.value });
+            .editPost(payload);
 
     } else {
 
         // Classic editor fallback.
         const classicEditor = document.querySelector('#content');
         if (classicEditor) classicEditor.value = textarea.value;
+
+        if (translatedTitle) {
+            const classicTitle = document.querySelector('#title');
+            if (classicTitle) classicTitle.value = translatedTitle;
+        }
     }
 
     // If footnotes were translated, persist them via the REST endpoint.
@@ -213,6 +222,10 @@ function renderContentResult(container, data, featureKey, postId) {
         ? ` data-footnotes="${escapeAttr(data.footnotes)}"`
         : '';
 
+    const titleAttr = data.translated_title
+        ? ` data-translated-title="${escapeAttr(data.translated_title)}"`
+        : '';
+
     const cachedBadge = data.cached
         ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
         : '';
@@ -250,7 +263,7 @@ function renderContentResult(container, data, featureKey, postId) {
         : '';
 
     container.innerHTML = `
-        <div class="wpenhance-ai-content-result"${footnotesAttr}>
+        <div class="wpenhance-ai-content-result"${footnotesAttr}${titleAttr}>
             <p class="wpenhance-ai-result-meta">
                 ${metaSummary}${cachedBadge}
             </p>

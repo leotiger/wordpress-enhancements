@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.0.0] — 2026-05-14
+
+The post title was not being translated. It was passed to the model as context
+but the prompt instructed the model to return only the content body, and the
+JS dispatcher only applied `content` to the editor — so after every translation
+the title stayed in the original language.
+
+### Added
+
+* **Title translation** — the translated post title is now returned alongside
+  the content body and applied to the editor in the same **Apply to Editor**
+  click. No extra steps required.
+
+### Changed
+
+* `templates/prompts/translation.txt` — output instruction replaced: the model
+  now opens its response with `===TITLE===` followed by the translated title on
+  the next line, then the content body. The previous "Return ONLY the translated
+  content" line is removed.
+* `Translation::run()` — `===TITLE===` is parsed first (before footnotes and
+  attrs sections); `$translated_title` is extracted from the line immediately
+  after the separator and included in the payload as `translated_title` when
+  non-empty. `$post->post_title` is added to the cache hash so a title change
+  correctly invalidates any cached translation.
+* `admin.js` `renderContentResult()` — stores `data.translated_title` in a
+  `data-translated-title` attribute on the result container.
+* `admin.js` Apply to Editor handler — reads `data-translated-title` from the
+  result container and passes `title` alongside `content` in the `editPost()`
+  dispatch. Classic editor fallback also sets `#title` when a translated title
+  is present.
+
+---
+
 ## [0.9.0] — 2026-05-14
 
 Fixes silent translation gaps for native Gutenberg blocks whose visible text

@@ -9,7 +9,11 @@ Rules:
   placeholders — preserve them exactly as written, do not translate them.
 - Maintain the same tone, style, and formatting.
 - Do not add any explanations, notes, or commentary.
-- Return ONLY the translated content — nothing else.
+
+Begin your response with this exact line:
+===TITLE===
+Then output the translated post title on the very next line (no blank line).
+Then output the translated content body — nothing else before or after.
 
 Title: {{title}}
 

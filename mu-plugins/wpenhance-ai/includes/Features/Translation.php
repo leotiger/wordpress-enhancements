@@ -122,7 +122,7 @@ class Translation implements FeatureInterface {
         // can coexist (e.g. _wpenhance_cache_translation_fr, …_ca, …_de).
         $footnotes_raw = (string) get_post_meta($post_id, '_footnotes', true);
         $cache_key     = $this->get_key() . '_' . $target_language;
-        $hash          = CacheStore::hash([$post->post_content, $footnotes_raw, $target_language]);
+        $hash          = CacheStore::hash([$post->post_title, $post->post_content, $footnotes_raw, $target_language]);
         $cached = empty($params['force_refresh'])
             ? CacheStore::get($post_id, $cache_key, $hash)
             : null;
@@ -231,16 +231,35 @@ class Translation implements FeatureInterface {
         }
 
         // ── Split response sections ───────────────────────────────────────────
-        // Response structure (each section optional):
-        //   [translated content]
-        //   ===FOOTNOTES===
+        // Response structure:
+        //   ===TITLE===          (always first)
+        //   [translated title]
+        //   [translated content body]
+        //   ===FOOTNOTES===      (optional)
         //   [footnotes JSON]
-        //   ===ATTRS===
+        //   ===ATTRS===          (optional, always last)
         //   [block attribute translations JSON]
         //
-        // Parse in reverse order — attrs last in prompt, so strip them first.
+        // Parse outermost sections first so each step works on clean input.
         $translated_content   = trim($result);
         $translated_footnotes = null;
+        $translated_title     = null;
+
+        // ── ===TITLE=== (first line of response) ──────────────────────────────
+        if (str_starts_with($translated_content, '===TITLE===')) {
+
+            $after = ltrim(substr($translated_content, strlen('===TITLE===')));
+            $nl    = strpos($after, "\n");
+
+            if ($nl !== false) {
+                $translated_title   = trim(substr($after, 0, $nl));
+                $translated_content = trim(substr($after, $nl + 1));
+            } else {
+                // Edge case: model returned only a title with no body.
+                $translated_title   = trim($after);
+                $translated_content = '';
+            }
+        }
 
         // Strip ===ATTRS=== section before handling footnotes.
         $translated_attrs_json = null;
@@ -286,6 +305,10 @@ class Translation implements FeatureInterface {
             'type'     => 'content',
             'language' => $language_name,
         ];
+
+        if ($translated_title !== null && $translated_title !== '') {
+            $payload['translated_title'] = $translated_title;
+        }
 
         if ($translated_footnotes !== null) {
             $payload['footnotes'] = $translated_footnotes;

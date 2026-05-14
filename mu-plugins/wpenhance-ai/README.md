@@ -28,7 +28,7 @@ Translates the full post or page content to a selected target language while pre
 
 **Footnote translation** — when the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), they are translated in the same API call as the body content, keeping terminology consistent between text and footnotes. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry.
 
-Translations are never applied automatically. Results appear in a dedicated review panel; the editor clicks **Apply to Editor** to dispatch the content (and footnotes, if present) or **Copy** to handle it manually. A failure to save footnotes is non-fatal — content is still applied and a warning is written to the browser console.
+Translations are never applied automatically. Results appear in a dedicated review panel; the editor clicks **Apply to Editor** to dispatch the translated title, content, and footnotes (when present) in a single action, or **Copy** to handle the content manually. A failure to save footnotes is non-fatal — content and title are still applied and a warning is written to the browser console.
 
 The target language selector is pre-populated from the post's `_lang` meta, so a French page already has French selected when the panel opens.
 
