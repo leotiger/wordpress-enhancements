@@ -67,6 +67,19 @@
     color: #50575e;
 }
 
+.wpenhance-ai-cached-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: #e8f4fd;
+    color: #0073aa;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    vertical-align: middle;
+}
+
 /* ── Textareas ───────────────────────────────────────────────────────────── */
 
 .wpenhance-ai-textarea {
@@ -98,6 +111,36 @@
 .wpenhance-ai-btn-row .button {
     flex: 1;
     text-align: center;
+}
+
+/* ── Force-refresh row ───────────────────────────────────────────────────── */
+
+.wpenhance-ai-refresh-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.wpenhance-ai-refresh {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #646970;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.wpenhance-ai-refresh:hover {
+    color: #135e96;
+}
+
+.wpenhance-ai-refresh-hint {
+    font-size: 11px;
+    color: #8c8f94;
+    font-style: italic;
 }
 
 /* ── Spinner (kept for potential future use) ─────────────────────────────── */

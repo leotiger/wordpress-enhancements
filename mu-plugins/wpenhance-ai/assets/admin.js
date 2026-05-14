@@ -12,67 +12,38 @@ document.addEventListener('click', async (event) => {
     const postId     = button.dataset.postId;
     const panel      = button.closest('.wpenhance-ai-panel');
     const result     = panel.querySelector('.wpenhance-ai-result');
-
-    // Collect extra UI field values for this feature (e.g. target_language).
-    const params = {};
-
-    panel
-        .querySelectorAll(
-            `.wpenhance-ai-select[data-feature-ref="${featureKey}"]`
-        )
-        .forEach((field) => {
-            params[field.dataset.field] = field.value;
-        });
-
-    result.innerHTML = '<p class="wpenhance-ai-status">Generating…</p>';
+    const params     = collectParams(panel, featureKey);
 
     button.disabled = true;
 
-    try {
+    await runFeature(featureKey, postId, params, result);
 
-        const response = await fetch(
-            `${WPEnhanceAI.restUrl}/feature/${featureKey}/${postId}`,
-            {
-                method:  'POST',
-                headers: {
-                    'X-WP-Nonce':   WPEnhanceAI.nonce,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(params),
-            }
-        );
+    button.disabled = false;
+});
 
-        const data = await response.json();
+// ─── Force-refresh button click ──────────────────────────────────────────────
 
-        if (!data.success || !data.output) {
+document.addEventListener('click', async (event) => {
 
-            const msg = data.error || 'Generation failed.';
-            result.innerHTML = `<p class="wpenhance-ai-error">${escapeHtml(msg)}</p>`;
-            return;
-        }
+    const button = event.target.closest('.wpenhance-ai-refresh');
 
-        if (data.type === 'content') {
+    if (!button) return;
 
-            renderContentResult(result, data, postId);
+    const featureKey = button.dataset.feature;
+    const postId     = button.dataset.postId;
+    const panel      = button.closest('.wpenhance-ai-panel');
+    const result     = panel.querySelector('.wpenhance-ai-result');
+    const params     = collectParams(panel, featureKey);
 
-        } else {
+    params.force_refresh = true;
 
-            result.innerHTML = `
-                <textarea
-                    class="wpenhance-ai-textarea"
-                    rows="4"
-                >${escapeHtml(data.output)}</textarea>`;
-        }
+    button.disabled      = true;
+    button.textContent   = '↺ Refreshing…';
 
-    } catch (error) {
+    await runFeature(featureKey, postId, params, result);
 
-        result.innerHTML =
-            '<p class="wpenhance-ai-error">Request failed.</p>';
-
-    } finally {
-
-        button.disabled = false;
-    }
+    // Button is inside the result area and will have been replaced by
+    // the re-render above, so no need to reset its state.
 });
 
 // ─── "Apply to Editor" button ────────────────────────────────────────────────
@@ -166,15 +137,81 @@ document.addEventListener('click', async (event) => {
     }
 });
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Core fetch + render ──────────────────────────────────────────────────────
+
+/**
+ * Call a feature endpoint and render the result into the given container.
+ * Shared by the main action button and the force-refresh button.
+ */
+async function runFeature(featureKey, postId, params, resultEl) {
+
+    resultEl.innerHTML = '<p class="wpenhance-ai-status">Generating…</p>';
+
+    try {
+
+        const response = await fetch(
+            `${WPEnhanceAI.restUrl}/feature/${featureKey}/${postId}`,
+            {
+                method:  'POST',
+                headers: {
+                    'X-WP-Nonce':   WPEnhanceAI.nonce,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(params),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!data.success || !data.output) {
+
+            const msg = data.error || 'Generation failed.';
+            resultEl.innerHTML = `<p class="wpenhance-ai-error">${escapeHtml(msg)}</p>`;
+            return;
+        }
+
+        if (data.type === 'content') {
+
+            renderContentResult(resultEl, data, featureKey, postId);
+
+        } else {
+
+            const cachedBadge = data.cached
+                ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
+                : '';
+
+            const refreshRow = data.cached
+                ? renderRefreshRow(featureKey, postId)
+                : '';
+
+            resultEl.innerHTML = `
+                <p class="wpenhance-ai-result-meta">${cachedBadge}</p>
+                <textarea
+                    class="wpenhance-ai-textarea"
+                    rows="4"
+                >${escapeHtml(data.output)}</textarea>
+                ${refreshRow}`;
+        }
+
+    } catch (_) {
+
+        resultEl.innerHTML = '<p class="wpenhance-ai-error">Request failed.</p>';
+    }
+}
+
+// ─── Render helpers ───────────────────────────────────────────────────────────
 
 /**
  * Render the result area for full-content outputs (e.g. translations).
  */
-function renderContentResult(container, data, postId) {
+function renderContentResult(container, data, featureKey, postId) {
 
     const footnotesAttr = data.footnotes
         ? ` data-footnotes="${escapeAttr(data.footnotes)}"`
+        : '';
+
+    const cachedBadge = data.cached
+        ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
         : '';
 
     const footnotesNote = data.footnotes
@@ -183,10 +220,14 @@ function renderContentResult(container, data, postId) {
            </p>`
         : '';
 
+    const refreshRow = data.cached
+        ? renderRefreshRow(featureKey, postId)
+        : '';
+
     container.innerHTML = `
         <div class="wpenhance-ai-content-result"${footnotesAttr}>
             <p class="wpenhance-ai-result-meta">
-                Translated to: <strong>${escapeHtml(data.language)}</strong>
+                Translated to: <strong>${escapeHtml(data.language)}</strong>${cachedBadge}
             </p>
             ${footnotesNote}
             <textarea
@@ -203,7 +244,48 @@ function renderContentResult(container, data, postId) {
                     class="button button-secondary wpenhance-ai-copy"
                 >Copy</button>
             </div>
+            ${refreshRow}
         </div>`;
+}
+
+/**
+ * Render the force-refresh button with its explanatory hint.
+ * Only shown when the current result came from the cache.
+ */
+function renderRefreshRow(featureKey, postId) {
+
+    return `
+        <div class="wpenhance-ai-refresh-row">
+            <button
+                type="button"
+                class="wpenhance-ai-refresh"
+                data-feature="${escapeAttr(featureKey)}"
+                data-post-id="${escapeAttr(postId)}"
+            >↺ Refresh</button>
+            <span class="wpenhance-ai-refresh-hint">
+                Re-generates and updates the cached result.
+            </span>
+        </div>`;
+}
+
+// ─── Utilities ────────────────────────────────────────────────────────────────
+
+/**
+ * Collect the values of any extra UI fields belonging to a feature.
+ */
+function collectParams(panel, featureKey) {
+
+    const params = {};
+
+    panel
+        .querySelectorAll(
+            `.wpenhance-ai-select[data-feature-ref="${featureKey}"]`
+        )
+        .forEach((field) => {
+            params[field.dataset.field] = field.value;
+        });
+
+    return params;
 }
 
 /**
@@ -236,7 +318,7 @@ function escapeAttr(value) {
  */
 function escapeHtml(value) {
 
-    const div    = document.createElement('div');
+    const div     = document.createElement('div');
     div.innerText = String(value);
 
     return div.innerHTML;

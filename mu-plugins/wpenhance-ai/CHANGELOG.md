@@ -1,5 +1,93 @@
 # Changelog
 
+## [0.6.0] — 2026-05-14
+
+Adds a force-refresh control to bypass the cache on demand, and refactors the JS fetch logic
+into a shared function to eliminate duplication.
+
+### UX Improvements
+
+* A **↺ Refresh** link appears below any cached result, accompanied by the hint
+  *"Re-generates and updates the cached result."* The button is styled as a plain underlined
+  link — visually distinct from primary actions — so it is discoverable without competing
+  for attention with Apply to Editor or Copy.
+* The refresh button only appears when the result came from cache. Fresh results show no
+  refresh control, keeping the panel uncluttered on first generation.
+
+### Technical Notes
+
+* `force_refresh: true` is added to the JSON request body by the JS and read in each feature's
+  `run()` via `empty($params['force_refresh'])`. Skipping the cache on a refresh still writes
+  the new result back, so subsequent loads serve the updated cached value.
+* The JS fetch + render logic is extracted into a shared `runFeature()` function used by both
+  the main action button and the refresh button, removing the duplication that would otherwise
+  exist between the two handlers.
+
+### Added
+
+* **Force-refresh button** — rendered below any cached result with an explanatory hint.
+  Triggers a fresh API call for the same feature and language, then replaces the result
+  panel (including the badge and refresh row) with the new output.
+
+### Changed
+
+* `MetaDescription::run()`, `ExcerptGenerator::run()`, `Translation::run()` — cache lookup is
+  now conditional on `empty($params['force_refresh'])`. A refresh skips `CacheStore::get()` but
+  still calls `CacheStore::set()` at the end, so the cache is always left in a fresh state.
+* `admin.js` — `runFeature(featureKey, postId, params, resultEl)` extracted as a shared async
+  function. Both the action-button handler and the new refresh handler delegate to it.
+  `collectParams()` also extracted to keep param collection consistent between the two paths.
+* `renderContentResult()` updated to accept `featureKey` and `postId` so it can pass them to
+  `renderRefreshRow()` when the result is cached.
+
+---
+
+## [0.5.0] — 2026-05-14
+
+Introduces result caching across all three features, eliminating redundant API calls when
+post content has not changed since the last generation.
+
+### UX Improvements
+
+* A **"cached"** badge appears next to the result label whenever a stored result is returned
+  instead of making a new API call — giving editors a clear signal that generation was
+  instantaneous and no cost was incurred.
+
+### Technical Notes
+
+* Caching uses a SHA-256 hash of the inputs (content, title, locale, target language, footnotes
+  as applicable) stored alongside the result in post meta. The cache is invalidated automatically
+  when any input changes — there is no TTL. A post that is edited and then re-generated will
+  always get a fresh result.
+* Translation cache entries are per-language (`_wpenhance_cache_translation_fr`,
+  `_wpenhance_cache_translation_ca`, etc.), so multiple language versions of the same post
+  can be cached independently without overwriting each other.
+* The null-byte `\x00` separator used in the hash input string prevents trivial collision attacks
+  where concatenated inputs could otherwise produce the same hash from different values.
+* Cache is stored in post meta with `autoload = false` (WordPress default for `update_post_meta`)
+  so cached values are not loaded on every page request.
+
+### Added
+
+* **`CacheStore` class** (`includes/Core/CacheStore.php`) — `get()`, `set()`, `delete()`, and
+  `hash()` helpers. `get()` returns `null` on miss or stale hash; `set()` writes the payload and
+  hash atomically via `update_post_meta`.
+
+### Changed
+
+* `MetaDescription::run()` — checks cache (hash of `post_content + post_title + locale`) before
+  calling the API; stores result on miss. Returns `cached: true` on a hit.
+* `ExcerptGenerator::run()` — checks cache (hash of `post_content + locale`) before calling the
+  API; stores result on miss. Returns `cached: true` on a hit.
+* `Translation::run()` — checks a per-language cache (hash of `post_content + _footnotes +
+  target_language`) before calling the API; stores both translated content and footnotes on miss.
+  Returns `cached: true` on a hit. The `$footnotes_raw` read is hoisted to before the cache
+  check so it is available for hashing without a second `get_post_meta` call.
+* `admin.js` — renders a "cached" badge on any result where `data.cached === true`, for both
+  short text outputs and full content translation panels.
+
+---
+
 ## [0.4.0] — 2026-05-14
 
 Adds footnote translation support and fixes a fatal error on Linux deployments caused by a

@@ -5,6 +5,7 @@ namespace WPEnhance\AI\Features;
 use WPEnhance\AI\Features\Contracts\FeatureInterface;
 use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
+use WPEnhance\AI\Core\CacheStore;
 
 defined('ABSPATH') || exit;
 
@@ -115,6 +116,21 @@ class Translation implements FeatureInterface {
 
         $language_name = self::LANGUAGES[$target_language];
 
+        // ── Cache check ───────────────────────────────────────────────────────
+        // Cache key is per-language so multiple translations of the same post
+        // can coexist (e.g. _wpenhance_cache_translation_fr, …_ca, …_de).
+        $footnotes_raw = (string) get_post_meta($post_id, '_footnotes', true);
+        $cache_key     = $this->get_key() . '_' . $target_language;
+        $hash          = CacheStore::hash([$post->post_content, $footnotes_raw, $target_language]);
+        $cached = empty($params['force_refresh'])
+            ? CacheStore::get($post_id, $cache_key, $hash)
+            : null;
+
+        if ($cached !== null) {
+            return array_merge(['success' => true, 'cached' => true], $cached);
+        }
+
+        // ── Build prompt ──────────────────────────────────────────────────────
         $prompt = file_get_contents(
             WPENHANCE_AI_PATH .
             '/templates/prompts/translation.txt'
@@ -141,7 +157,7 @@ class Translation implements FeatureInterface {
         // Footnotes are stored as a JSON array of {id, content} objects.
         // We append them to the prompt so they are translated in the same call,
         // keeping terminology consistent with the main content.
-        $footnotes_raw = (string) get_post_meta($post_id, '_footnotes', true);
+        // Note: $footnotes_raw was already read above for the cache hash.
         $has_footnotes = false;
 
         if ($footnotes_raw !== '') {
@@ -205,17 +221,18 @@ class Translation implements FeatureInterface {
             }
         }
 
-        $response = [
-            'success'  => true,
+        $payload = [
             'output'   => $translated_content,
             'type'     => 'content',
             'language' => $language_name,
         ];
 
         if ($translated_footnotes !== null) {
-            $response['footnotes'] = $translated_footnotes;
+            $payload['footnotes'] = $translated_footnotes;
         }
 
-        return $response;
+        CacheStore::set($post_id, $cache_key, $hash, $payload);
+
+        return array_merge(['success' => true], $payload);
     }
 }

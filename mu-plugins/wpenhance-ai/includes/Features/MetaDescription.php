@@ -5,6 +5,7 @@ namespace WPEnhance\AI\Features;
 use WPEnhance\AI\Features\Contracts\FeatureInterface;
 use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
+use WPEnhance\AI\Core\CacheStore;
 
 defined('ABSPATH') || exit;
 
@@ -57,10 +58,22 @@ class MetaDescription implements FeatureInterface {
             return ['success' => false];
         }
 
-        $content = wp_strip_all_tags(
-            $post->post_content
-        );
+        $content = wp_strip_all_tags($post->post_content);
 
+        $locale = get_post_meta($post_id, '_lang', true)
+            ?: determine_locale();
+
+        // ── Cache check ───────────────────────────────────────────────────────
+        $hash   = CacheStore::hash([$post->post_content, $post->post_title, $locale]);
+        $cached = empty($params['force_refresh'])
+            ? CacheStore::get($post_id, $this->get_key(), $hash)
+            : null;
+
+        if ($cached !== null) {
+            return array_merge(['success' => true, 'cached' => true], $cached);
+        }
+
+        // ── API call ──────────────────────────────────────────────────────────
         $prompt = file_get_contents(
             WPENHANCE_AI_PATH .
             '/templates/prompts/meta-description.txt'
@@ -72,9 +85,6 @@ class MetaDescription implements FeatureInterface {
                 'error'   => 'Prompt template not found.',
             ];
         }
-
-        $locale = get_post_meta($post_id, '_lang', true)
-            ?: determine_locale();
 
         $prompt = str_replace(
             ['{{locale}}', '{{title}}', '{{content}}'],
@@ -108,10 +118,10 @@ class MetaDescription implements FeatureInterface {
             ];
         }
 
-        return [
-            'success' => true,
-            'output'  => $result,
-            'type'    => 'text',
-        ];
+        $payload = ['output' => $result, 'type' => 'text'];
+
+        CacheStore::set($post_id, $this->get_key(), $hash, $payload);
+
+        return array_merge(['success' => true], $payload);
     }
 }
