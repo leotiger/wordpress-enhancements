@@ -2,7 +2,7 @@
 
 ## [1.0.0] — 2026-05-14
 
-First major release. Collects three fixes discovered during final testing.
+First major release. Collects four fixes discovered during final testing.
 
 ### Fixed
 
@@ -20,6 +20,15 @@ First major release. Collects three fixes discovered during final testing.
   title now comes back via a `===TITLE===` separator, is included in the
   payload as `translated_title`, and is applied to the editor alongside
   content in the same **Apply to Editor** click.
+
+* **`<br>` tags injected into block markup** — models commonly add `<br>`
+  or `<br />` tags to "preserve" newlines between blocks, breaking the block
+  parser. Fixed with two layers: an explicit prompt rule added to both
+  `translation.txt` and `content-generator.txt` ("do not introduce `<br>`
+  tags"), and a `preg_replace` safety net in PHP. `Translation::run()` strips
+  them only when the original post content had none, preserving any
+  intentional soft line breaks (Shift+Enter). `ContentGenerator::run()` strips
+  them unconditionally since generated Gutenberg markup should never need them.
 
 * **All features shared a single result panel** — clicking any feature
   replaced the output of every other feature. Each feature group now has its

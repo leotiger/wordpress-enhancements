@@ -300,6 +300,14 @@ class Translation implements FeatureInterface {
             }
         }
 
+        // ── Strip stray <br> tags ─────────────────────────────────────────────
+        // Models sometimes add <br> tags to "preserve" newlines between blocks.
+        // Only strip them when the original had none — this avoids removing
+        // intentional soft line breaks (Shift+Enter) the editor may have used.
+        if (!preg_match('/<br[\s\/]*>/i', $post->post_content)) {
+            $translated_content = preg_replace('/<br[\s\/]*>/i', '', $translated_content);
+        }
+
         $payload = [
             'output'   => $translated_content,
             'type'     => 'content',

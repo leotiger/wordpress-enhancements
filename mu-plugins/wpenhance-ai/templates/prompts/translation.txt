@@ -8,6 +8,8 @@ Rules:
 - __WPAI_N__ tokens that appear inside block comment JSON values are
   placeholders — preserve them exactly as written, do not translate them.
 - Maintain the same tone, style, and formatting.
+- Do not introduce any HTML tags that are not present in the source —
+  in particular, never add <br> or <br /> tags.
 - Do not add any explanations, notes, or commentary.
 
 Begin your response with this exact line:

@@ -8,6 +8,8 @@ Requirements:
 - Wrap headings in <!-- wp:heading --> ... <!-- /wp:heading --> using <h2> or <h3> tags.
 - Wrap lists in <!-- wp:list --> ... <!-- /wp:list --> with <ul><li> elements.
 - Do NOT include the post title itself in the output — only the body content.
+- Do not use <br> or <br /> tags — all line breaks and paragraph separations
+  must be expressed through block structure.
 - Do not add any preamble, commentary, or closing remarks.
 - Return ONLY the post body markup — nothing else.
 

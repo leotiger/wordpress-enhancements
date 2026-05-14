@@ -206,8 +206,12 @@ class ContentGenerator implements FeatureInterface {
             ];
         }
 
+        // Strip any <br> tags the model added — clean Gutenberg markup uses
+        // block structure for all separations; <br> is not expected in output.
+        $output = preg_replace('/<br[\s\/]*>/i', '', trim($result));
+
         $payload = [
-            'output'       => trim($result),
+            'output'       => $output,
             'type'         => 'content',
             'tone'         => $tone_label,
             'content_type' => $content_type_label,
