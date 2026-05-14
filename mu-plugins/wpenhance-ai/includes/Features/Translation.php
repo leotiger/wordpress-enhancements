@@ -5,6 +5,7 @@ namespace WPEnhance\AI\Features;
 use WPEnhance\AI\Features\Contracts\FeatureInterface;
 use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
+use WPEnhance\AI\Core\BlockTextExtractor;
 use WPEnhance\AI\Core\CacheStore;
 
 defined('ABSPATH') || exit;
@@ -130,6 +131,16 @@ class Translation implements FeatureInterface {
             return array_merge(['success' => true, 'cached' => true], $cached);
         }
 
+        // ── Block attribute extraction ────────────────────────────────────────
+        // Pull translatable strings out of block comment JSON attributes
+        // (e.g. the "summary" field of wp:details) and replace them with
+        // __WPAI_N__ placeholders.  The placeholders survive translation
+        // unchanged; the translated values are reinserted afterwards.
+        // When no translatable attrs are found this is a cheap no-op.
+        [$placeholder_content, $attr_map] = BlockTextExtractor::extract(
+            $post->post_content
+        );
+
         // ── Build prompt ──────────────────────────────────────────────────────
         $prompt = file_get_contents(
             WPENHANCE_AI_PATH .
@@ -148,7 +159,7 @@ class Translation implements FeatureInterface {
             [
                 $language_name,
                 $post->post_title,
-                mb_substr($post->post_content, 0, 20000),
+                mb_substr($placeholder_content, 0, 20000),
             ],
             $prompt
         );
@@ -172,6 +183,23 @@ class Translation implements FeatureInterface {
                     "Then output the complete translated footnotes JSON array.\n\n" .
                     "Footnotes JSON:\n" . $footnotes_raw;
             }
+        }
+
+        // ── Block attribute strings ───────────────────────────────────────────
+        // When the extractor found translatable attrs, ask the model to
+        // translate them in the same call (consistent terminology) and return
+        // them as a JSON object after an ===ATTRS=== separator — last section,
+        // after ===FOOTNOTES=== if that section is also present.
+        if (!empty($attr_map)) {
+            $prompt .= "\n\n" .
+                "The block content also contains translatable text stored inside block comment attributes.\n" .
+                "After the translated content (and after the ===FOOTNOTES=== section if present), " .
+                "output this exact separator on its own line:\n" .
+                "===ATTRS===\n" .
+                "Then output a JSON object mapping each placeholder key to its translation. " .
+                "Translate only the values — every key must remain exactly as shown.\n\n" .
+                "Block attribute strings:\n" .
+                wp_json_encode($attr_map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
 
         $provider = ProviderFactory::make(
@@ -202,13 +230,30 @@ class Translation implements FeatureInterface {
             ];
         }
 
-        // ── Split content / footnotes from the model response ─────────────────
+        // ── Split response sections ───────────────────────────────────────────
+        // Response structure (each section optional):
+        //   [translated content]
+        //   ===FOOTNOTES===
+        //   [footnotes JSON]
+        //   ===ATTRS===
+        //   [block attribute translations JSON]
+        //
+        // Parse in reverse order — attrs last in prompt, so strip them first.
         $translated_content   = trim($result);
         $translated_footnotes = null;
 
-        if ($has_footnotes && str_contains($result, '===FOOTNOTES===')) {
+        // Strip ===ATTRS=== section before handling footnotes.
+        $translated_attrs_json = null;
+        if (!empty($attr_map) && str_contains($translated_content, '===ATTRS===')) {
 
-            [$content_part, $footnotes_part] = explode('===FOOTNOTES===', $result, 2);
+            $parts                 = explode('===ATTRS===', $translated_content, 2);
+            $translated_content    = trim($parts[0]);
+            $translated_attrs_json = trim($parts[1]);
+        }
+
+        if ($has_footnotes && str_contains($translated_content, '===FOOTNOTES===')) {
+
+            [$content_part, $footnotes_part] = explode('===FOOTNOTES===', $translated_content, 2);
 
             $translated_content = trim($content_part);
             $candidate          = trim($footnotes_part);
@@ -218,6 +263,21 @@ class Translation implements FeatureInterface {
                 $translated_footnotes = $candidate;
             } else {
                 error_log('WPEnhance AI [Translation] footnotes section was not valid JSON — skipped.');
+            }
+        }
+
+        // Reinsert translated block attribute strings.
+        if ($translated_attrs_json !== null) {
+
+            $translated_attrs = json_decode($translated_attrs_json, true);
+
+            if (is_array($translated_attrs)) {
+                $translated_content = BlockTextExtractor::reinsert(
+                    $translated_content,
+                    $translated_attrs
+                );
+            } else {
+                error_log('WPEnhance AI [Translation] block attribute translations were not valid JSON — skipped.');
             }
         }
 

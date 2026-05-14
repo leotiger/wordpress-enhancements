@@ -5,6 +5,8 @@ Rules:
 - Preserve all HTML tags, WordPress block comments (<!-- wp:... /-->),
   shortcodes, and element attributes exactly as they appear.
 - Only translate the visible text content between tags.
+- __WPAI_N__ tokens that appear inside block comment JSON values are
+  placeholders — preserve them exactly as written, do not translate them.
 - Maintain the same tone, style, and formatting.
 - Do not add any explanations, notes, or commentary.
 - Return ONLY the translated content — nothing else.

@@ -24,7 +24,9 @@ Uses `claude-haiku-4-5-20251001` (512 token budget, temperature 0.4).
 
 Translates the full post or page content to a selected target language while preserving all WordPress block comments, HTML structure, shortcodes, and element attributes. Only visible text is translated — the block markup comes back intact and the result is immediately applicable to the Gutenberg editor.
 
-When the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), they are translated in the same API call as the body content, keeping terminology consistent between text and footnotes. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry.
+**Block attribute translation** — native blocks like `wp:details` (accordion / disclosure) store their visible text as JSON attribute values inside the block comment rather than in the HTML body. A naive translation pass would leave those strings in the original language, causing the block editor to silently overwrite the translated HTML on the next open. Before sending content to the API, the plugin extracts those strings and replaces them with `__WPAI_N__` placeholders; they are translated in the same API call and reinserted with proper JSON escaping before the result is returned. The extraction covers `summary`, `alt`, `caption`, `label`, `placeholder`, `buttonText`, `title`, and `description` attributes across all block depths.
+
+**Footnote translation** — when the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), they are translated in the same API call as the body content, keeping terminology consistent between text and footnotes. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry.
 
 Translations are never applied automatically. Results appear in a dedicated review panel; the editor clicks **Apply to Editor** to dispatch the content (and footnotes, if present) or **Copy** to handle it manually. A failure to save footnotes is non-fatal — content is still applied and a warning is written to the browser console.
 

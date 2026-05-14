@@ -1,5 +1,83 @@
 # Changelog
 
+## [0.9.0] — 2026-05-14
+
+Fixes silent translation gaps for native Gutenberg blocks whose visible text
+is stored in block comment JSON attributes rather than in the HTML body —
+most notably `wp:details` (the accordion / disclosure block), where the
+summary text lives in `{"summary":"…"}` and would revert to the original
+language on the first editor load after translation.
+
+### The Problem
+
+The translation prompt instructs the model to "translate visible text content
+between tags" and to "preserve all block comments exactly as they appear."
+That works perfectly for static blocks (`wp:paragraph`, `wp:heading`, etc.)
+whose text is in the HTML — but for `wp:details` and similar blocks, the
+visible text is a string value inside the block comment JSON.  The model
+never sees it as translatable text; the JSON attribute comes back untouched,
+and the block editor re-renders the heading from the original-language JSON
+when the post is opened, silently overwriting the translated HTML version.
+
+### Solution
+
+A pre/post-processing step extracts attribute strings before the API call and
+reinserts translated strings after, keeping the main translation prompt and
+block grammar completely intact.
+
+### UX Improvements
+
+* `wp:details` summaries, `wp:image` alt text and captions, search block
+  labels and placeholders, and any other block using a known translatable
+  attribute name are now fully translated in a single **Translate Content**
+  click — no extra steps or manual fixup.
+* The change is transparent: editors see the same Apply / Copy flow. The
+  only difference is that the translated result is now complete.
+
+### Technical Notes
+
+* Extraction uses WordPress's native `parse_blocks()` / `serialize_blocks()`
+  functions, which handle all block depths and nested structures correctly
+  without custom parsing.
+* A whitelist of attribute names drives extraction (`summary`, `alt`,
+  `caption`, `label`, `placeholder`, `buttonText`, `title`, `description`).
+  This intentionally avoids guessing — only known user-facing fields are
+  touched; structural keys, IDs, CSS classes, and URLs are never considered.
+* Placeholders take the form `__WPAI_N__` (underscore-fenced, uppercase,
+  numeric index).  The translation prompt is updated to explicitly tell the
+  model to treat them as opaque tokens, making accidental translation
+  extremely unlikely.
+* Attribute translations are requested in the **same API call** as the HTML
+  content, appended after an `===ATTRS===` separator (matching the
+  established footnotes pattern).  Single-call translation keeps terminology
+  consistent between body text and attribute strings.
+* Translated values are JSON-escaped before substitution via `json_encode`
+  + outer-quote stripping, so double-quotes, backslashes, and other special
+  characters in the translation never corrupt the block comment grammar.
+* When no translatable attributes are found, `BlockTextExtractor::extract()`
+  returns the original content unchanged and skips the `serialize_blocks()`
+  round-trip entirely, so posts with no qualifying blocks pay zero overhead.
+
+### Added
+
+* **`BlockTextExtractor` class** (`includes/Core/BlockTextExtractor.php`) —
+  `extract(string $content): array` walks the parsed block tree, replaces
+  translatable attribute values with `__WPAI_N__` placeholders, and returns
+  `[modified_content, map]`.  `reinsert(string $content, array $translations)`
+  JSON-escapes translated values and substitutes them back in place.
+
+### Changed
+
+* `Translation::run()` — imports `BlockTextExtractor`; calls `extract()`
+  after the cache check; uses placeholder content in the prompt; appends an
+  `===ATTRS===` section to the prompt when the map is non-empty; parses the
+  attrs section from the response before the footnotes section; calls
+  `reinsert()` to apply translated attribute values to `$translated_content`.
+* `templates/prompts/translation.txt` — new rule: `__WPAI_N__` tokens inside
+  block comment JSON values are placeholders and must not be translated.
+
+---
+
 ## [0.8.0] — 2026-05-14
 
 Adds a dedicated **Hints** field to the Content Generator, giving editors a clean way to seed generation with key points, ideas, or a rough structure without mixing that input with the post body.
