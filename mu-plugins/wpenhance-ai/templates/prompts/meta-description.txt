@@ -1,0 +1,14 @@
+Write a compelling SEO meta description in {{locale}}.
+
+Requirements:
+- Maximum 90 characters
+- No quotation marks
+- Tourism-oriented tone
+- Encourage curiosity and visits
+- Avoid keyword stuffing
+
+Title:
+{{title}}
+
+Content:
+{{content}}

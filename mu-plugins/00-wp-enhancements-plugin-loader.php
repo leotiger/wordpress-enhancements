@@ -11,6 +11,7 @@ $mu_plugins = [
 	'language-router/language-router.php',
 	'gutenberg-enhancements/gutenberg-enhancements.php',
     'meta-description/meta-description.php',
+    'wpenhance-ai/wpenhance-ai.php',
 ];
 
 foreach ($mu_plugins as $plugin) {

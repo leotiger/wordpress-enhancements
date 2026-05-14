@@ -1,0 +1,108 @@
+/* WPEnhance AI – admin meta box styles */
+
+/* ── Panel layout ────────────────────────────────────────────────────────── */
+
+.wpenhance-ai-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ── Feature groups (one per feature) ───────────────────────────────────── */
+
+.wpenhance-ai-feature-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.wpenhance-ai-feature-group .button {
+    width: 100%;
+    text-align: center;
+}
+
+/* ── Extra UI fields (language selector, etc.) ───────────────────────────── */
+
+.wpenhance-ai-feature-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wpenhance-ai-label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+    color: #50575e;
+}
+
+.wpenhance-ai-select {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* ── Result area ─────────────────────────────────────────────────────────── */
+
+.wpenhance-ai-result {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpenhance-ai-status {
+    color: #646970;
+    font-style: italic;
+    margin: 0;
+}
+
+.wpenhance-ai-error {
+    color: #d63638;
+    margin: 0;
+}
+
+.wpenhance-ai-result-meta {
+    margin: 0;
+    font-size: 12px;
+    color: #50575e;
+}
+
+/* ── Textareas ───────────────────────────────────────────────────────────── */
+
+.wpenhance-ai-textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.wpenhance-ai-textarea--large {
+    min-height: 200px;
+}
+
+/* ── Content result (translation) ───────────────────────────────────────── */
+
+.wpenhance-ai-content-result {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wpenhance-ai-btn-row {
+    display: flex;
+    gap: 6px;
+}
+
+.wpenhance-ai-btn-row .button {
+    flex: 1;
+    text-align: center;
+}
+
+/* ── Spinner (kept for potential future use) ─────────────────────────────── */
+
+.wpenhance-ai-spinner {
+    float: none;
+    margin: 0;
+}
