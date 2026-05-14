@@ -1,488 +1,101 @@
-# WordPress Minimal Integration & Enhancements
+# WordPress Enhancements
 
-We are developing a WordPress integration based on minimal dependency on third-party plugins, to ensure speed, control, security, and autonomy.
+A collection of lightweight, dependency-free enhancements for WordPress, built around a simple principle: full control over your site without relying on bloated third-party plugins. Everything here was written for a real production site — [Cal Talaia](https://cal-talaia.cat) — and reflects actual problems solved in the field.
 
-Meanwhile, the WordPress ecosystem increasingly behaves like a business platform: basic plugins, limited functionality, and “professional” versions behind paywalls.
-
-This project is a practical response to that situation.
-
-You can see things in action on our website under [Cal Talaia](https://cal-talaia.cat).
-
-Test our site with PageSpeed and other tools. We are trying to deliver a simple yet complete and complex WP integration with free out of the box tools... Not everything is yet published here...
+The WordPress ecosystem has drifted toward a business model where basic functionality is locked behind "professional" paywalls. This project is a practical answer to that: small, focused mu-plugins and utilities that do exactly what they need to do and nothing more.
 
 ---
 
 ## Philosophy
 
-- Minimal third-party dependencies  
-- Full control over the code  
-- Simple solutions to real problems  
-- Respect for WordPress architecture  
-- No unnecessary feature bloat  
+Minimal third-party dependencies. Full control over the code. Simple solutions to real problems. Respect for WordPress architecture. No unnecessary feature bloat.
+
+The code is not perfect — it was developed iteratively with AI assistance and shaped by the constraints of a live site running on WordPress 6.x and PHP 8.3. It works for our needs and may serve as a solid starting point for yours.
 
 ---
 
-## Enhancements Plugin Loader
+## Plugin Loader
 
-The **Plugin Loader** allows integrating more complex functionality — organized across multiple files — within a clear and maintainable structure.
+The entry point for the entire enhancement suite. Rather than scattering small snippets across a theme's `functions.php` or maintaining a dozen micro-plugins, the Plugin Loader provides a single, organized entry point that loads each enhancement on demand.
 
-This avoids:
-- proliferation of small scattered plugins  
-- unnecessary external dependencies  
-- loss of system control
-
-You simply enable or disable the stuff you want or not want to use in this file, simply place two slashes to comment out what's not desired. The language switcher add-on for MSLS is not included as we don't use it anymore.
+Enabling or disabling a feature is as simple as commenting out a single line. The loader keeps the codebase navigable and avoids polluting the WordPress plugin directory with internal utilities.
 
 ---
 
-## Gutenberg Limitations (and fixes)
+## Gutenberg Enhancements
 
-### Lightbox / Media Blocks
+### Lightbox for Carousel Slider Block
 
-The Image, Gallery, and Carousel blocks have limitations:
+The native Carousel Slider Block (by Virgildia) does not support a unified lightbox experience — images open in isolation rather than as a browsable sequence. This enhancement adds a proper overlay lightbox with forward/backward keyboard navigation across all images in a carousel, matching the behavior that the Gallery block provides natively.
 
-- No proper control over the *lightbox* background (color and related parameters)  
-- The Carousel block does not provide a natural slide progression within the same overlay for images included in the carousel block  
-- The Gallery block does support this behavior natively
-- The latest version includes support for forward/backward keys for the Carousel Slider Block when displaying images in Lightbox.
+Visual control over the lightbox background (color, opacity, and related parameters) is also exposed via CSS, since Gutenberg provides no native way to configure it.
 
-The image lightbox for carousel pictures could be improved to have a more native touch and feel via css.
-Works on top of the [Carousel Slider Block Plugin](https://wordpress.org/plugins/carousel-block/) provided for Wordpress by Virgildia.
+### Inline Images and Custom Fonts in Paragraphs
 
-👉 We implemented a custom solution to unify behavior and improve visual control.
+Gutenberg does not allow assigning a different font to a text fragment within a paragraph, nor does it support placing an image inline within a text flow — a limitation that becomes particularly painful when using the Footnotes block, where an inline image breaks the block entirely.
 
----
+This enhancement works around both constraints without touching the block structure. Fonts are applied via inline styles; images are rendered as CSS backgrounds on a controlled inline element, with full lightbox support included.
 
-### Text Editing & Inline Content
+### Accordion Auto-Scroll
 
-Gutenberg currently does not allow:
+When a user opens an item in the native WordPress Accordion block, the opened content may appear partially or fully off-screen — especially on mobile or with sticky headers. This enhancement automatically scrolls the opened item header into view after it opens.
 
-- Assigning a different font to a text chunk within a paragraph  
-- Adding inline images respecting WP block structure
-
-This may seem minor, but becomes critical in cases like:
-
-> Adding an image inside a footnote which breaks the footnote block
-
-👉 Solution: 
-
-A small extension that adds this capability without breaking the block system, using image as background and controlling display with style instrucions.
-We added lightbox support for these images as well.
+It uses a `MutationObserver` to detect state changes driven by the Interactivity API (`data-wp-*` / `is-open`), handles `openByDefault` items correctly on page load (no unwanted jump), and skips scrolling entirely when the header is already visible. Frontend-only, dependency-free.
 
 ---
 
-### Accordion Auto-Scroll (Gutenberg)
+## Multilingual Support
 
-Automatically scrolls the opened accordion item into view when using the native Accordion block in WordPress (Gutenberg).
+### Language Router and Language Switcher (LSFLR)
 
-#### ✨ Features
+A complete, code-driven multilingual system for single-site WordPress installations. Built for small to medium sites that need genuine language control without WPML, Polylang, or a multisite setup.
 
-- Smoothly scrolls the **opened item header** into view  
-- Works with the **Interactivity API** (`data-wp-*`, `is-open`)  
-- Handles `openByDefault` correctly (no jump on page load)  
-- Skips scrolling if the header is already visible  
-- Lightweight, dependency-free, and frontend-only
-- Adjust scroll offset (for sticky headers) inside the js (could be improved)
-- Designed for the new Accordion block, not legacy implementations
-- Uses MutationObserver because the Interactivity API is state-driven (no DOM events)
-- No editor-side behavior (frontend only)
+The router provides language-based URL routing (`/de/`, `/fr/`, `/ca/`, etc.), per-post translation linking via a TRID system, early locale switching (critical for plugins like Vik Booking that behave differently depending on the active locale), and SEO-ready output including canonical tags and `hreflang` attributes.
 
----
+It integrates fully with WordPress Full Site Editing: rather than duplicating themes or fighting the template hierarchy, the router hooks into the template resolution layer and swaps `wp_template` and `wp_template_part` entries dynamically per language. A search template named `search-de` is automatically loaded for German visitors; a `header-fr` template part is picked up for French — no code changes required once the naming convention is in place.
 
-# Multilingual Without Paid Services, Heavy Plugins and Dependencies
+One notable capability: the router allows running WordPress internally in `en_US` (useful for admin-facing plugins that behave better under that locale) while serving the site's primary content in another language — Catalan in our case — and routing English to a `/en/` subfolder. This is the kind of edge case that large multilingual plugins handle poorly or not at all.
 
-Building a multilingual website in WordPress is often an exercise in dependency:
+A detailed CHANGELOG is maintained in the plugin source, reflecting the complexity of language routing as a domain.
 
-- Plugins with pay walls and constant advertising for Single Instance
-- Complex multisite setups and complex maintainence
+### MU Meta Description for SEO
 
-### Our approach
+A minimal mu-plugin that gives editors direct control over SEO meta descriptions without pulling in a full SEO framework. A custom field is added to each post and page edit screen; if left empty, the plugin generates a fallback from the excerpt or page content automatically.
 
-- Small website  
-- Foster the own language skills  
-- Manual translations (use artificial inteligence to support you...)
-
-Browsers already provide automatic translation for languages outside a user’s skill set, and with modern AI tools, generating translations is no longer the real challenge. What actually matters is having a clear and reliable way to switch between languages. For small websites, content is usually created gradually over time, often starting with no more than 20 or 30 pages and posts. In this context, using large multilingual plugins to manage a few hundred pages is often unnecessary, heavy, and restrictive.
-
-Here we provide two mu-plugins. The first could be abstracted into classes and developed into a full-fledged plugin, but that is not our goal—feel free to use the code as a starting point and take the credit. The second is the result of an earlier architectural decision to use WordPress Multisite, which turned out to be overkill and is poorly supported by many plugins, especially those related to paid services. In our case, Vik Booking behaves more like a packaged Joomla application, even relying internally on Joomla-style translation mechanisms apart from not supporting WP Multisite by design. The WordPress ecosystem is, in that sense, quite an interesting one.
+Outputs `meta description`, Open Graph description, and Twitter description tags. Manually written descriptions are preserved exactly as entered; auto-generated fallbacks are truncated to a sensible length using multibyte-safe string functions. No frontend dependencies, no options pages, no bloat.
 
 ---
 
-### 🌍 Language Router + Language Switcher (LSFLR)
+## WPEnhance AI
 
-A lightweight, code-driven multilingual system for WordPress, designed for **small to medium websites** that need full control without relying on heavy plugins.
+An AI assistance framework built as an mu-plugin, adding an editorial panel to the Gutenberg meta box with three AI-powered features.
 
-Our WPML for the poor...
+**Meta Description** generates a ready-to-use SEO meta description from the post content and title, using the post's language metadata to write directly in the correct language.
 
-This solution provides:
+**Excerpt Generator** produces a concise post excerpt, again language-aware, without the editor having to summarize manually.
 
-* language-based routing (`/de/`, `/fr/`, etc.)
-* per-post translation linking (TRID system)
-* early locale switching (compatible with Vik Booking which is our use case, to build a multi-lingual site for a small accommodation business we are running.)
-* SEO-ready output (canonical + hreflang)
-* a context-aware language switcher (no redirects, no JS hacks)
-* Allows to run the instance with primary language set to en_US, for example, but serve content in Catalan and delegate en_US to a virtual subfolder (slug), e.g. /en
-  (This seems absurd, but for plugins like Vik Booking which behaves better when it runs for admin in en_US that's vital, we use a .cat domain and it would
-  be overly absurd to serve English as the first language, has and had to serve Catalan first.)
-* Language Router uses the template system to provide the language environment that encapsulates content in a given language.
+**Translation** translates the full post or page content to a target language while preserving all WordPress block comments, HTML structure, shortcodes, and element attributes — only visible text is translated. Native WordPress footnotes (`_footnotes` post meta) are translated in the same API call to keep terminology consistent, and applied to the editor in a single click. Translations are never applied automatically: results appear in a review panel where the editor can inspect, copy, or apply the output before anything changes.
 
-## 🧩 Integration with WordPress FSE (Full Site Editing)
+All three features support result caching: a SHA-256 hash of the inputs detects whether the content has changed since the last generation. Cached results are marked clearly with a badge in the UI; a refresh control is available to force a new API call when needed.
 
-This language router is fully compatible with WordPress Full Site Editing (FSE) and relies on the native block template system (`wp_template`, `wp_template_part`, patterns) rather than classic PHP templates.
+The plugin supports three AI providers — Anthropic Claude, OpenAI, and Google Gemini — selectable from a Settings page. API keys are stored encrypted (AES-256-CBC, keyed from WordPress auth salts) so plaintext credentials never touch the database. Existing setups using environment variables or PHP constants continue to work without changes.
 
-Instead of duplicating themes or using separate template hierarchies per language, the router dynamically selects the appropriate templates and content based on the active language for WP intrincic workflows based on  (`MY_LANG`). This is implemented right now for WP search, one of the intrinsic workflows of WP. For post types like pages or posts you have to assign language specific templates prepared by you to guarantee that your content is encapsuñated with the language specific container.
+Short-output features (meta description, excerpt) use `claude-haiku-4-5-20251001` for speed and cost; translation uses `claude-sonnet-4-6` at low temperature for higher fidelity on long multilingual content.
 
 ---
 
-## 🧠 Core Concept
+## SVG Icon System
 
-WordPress FSE stores templates and template parts as **database entities**:
+A lightweight alternative to icon font libraries like Font Awesome. Rather than loading an entire icon font via CSS — with its associated payload and render overhead — this module loads a custom SVG sprite file containing only the icons the site actually uses.
 
-- Templates → `wp_template`
-- Template parts (header, footer, etc.) → `wp_template_part`
-- Patterns → reusable block structures
-
-This router **hooks into the template resolution layer** and swaps templates dynamically per language.
-
-Example:
-
-- `search` → default language
-- `search-en` → English
-- `search-de` → German
-
-The router detects the current language and loads the corresponding template if it exists.
-
----
-
-## 📄 Language-Specific Templates
-
-All language specific tamplates for posts, pages, search can be handled via "Manage templates", naming is crucial.
-
-| Template Type | Default | English | German |
-|---------------|--------|--------|--------|
-| Search        | `search` | `search-en` | `search-de` |
-| Page        | `page` | `page-en` | `page-de` |
-
-The mentioned theme templates are created via:
-
-> via **Appearance -> Theme Options or Manage Templates** for WP intrinsic workflows like Search, Page, Post
-
-and stored in the database (not as files but you can do so as a template developer).
-
-Once created, you can edit and adapt the templates to your language specific needs. Assigning templates to posts and pages is easy via the Gutenberg Editor.
-The plugin will autoassign language specific templates if they exist on language change of a given content type, e.g. post, page...
-
-Templates for WP intrinsic workflows are loaded automatically if created, don't forget to edit and adapt.
-
-Adapting the templatess to roll down all the hierachy and include all their necessary language specific parts and patterns is a bit ardous... and requires work. Once you
-are familiar with the workflow after a learning curve, you dispose of a WP instance with multi-language support.
-
-At the time of writing there are several "instrinsic" Wordpress template features supported: Search, which is tied to the Search Block, Page for Pages and Post for Posts. We'll add more in the future.
-
----
-
-## 🧱 Template Parts (Header, Footer, etc.)
-
-FSE relies heavily on reusable template parts:
-
-- Header
-- Footer
-- Navigation
-- Sidebar (if used)
-
-To achieve full multilingual control, you should provide **language-specific template parts**, for example:
-
-- `header-en`
-- `footer-en`
-- `navigation-en`
-
-Then reference them inside your language-specific templates.
-
----
-
-## 🔍 Search Templates (Special Case)
-
-Search is handled explicitly by the router:
-
-- The router intercepts template resolution using `get_block_templates`
-- It attempts to load `search-{lang}` dynamically
-- Falls back to default `search` if no language-specific template exists
-
-This allows full control over:
-
-- Layout
-- Labels
-- Language-specific UI
-
----
-
-## ⚠️ Important Notes
-
-### 1. No Automatic Duplication
-Templates and template parts are **not automatically translated or duplicated**.
-
-You must create language variants manually where needed.
-
----
-
-### 2. Fallback Behavior
-If a language-specific template does not exist:
-
-- WordPress falls back to the default template
-- This ensures graceful degradation
-
----
-
-### 3. Separation of Concerns
-
-- **Routing layer (this plugin)** → decides *which language*
-- **FSE templates** → decide *how it looks*
-
-### 4. The plugin disables FSE editing for Posts, Pages and custom types
-
-- The plugin forces to edit templates and template parts like footers using
-  the Theme Editor to avoid accidental changes
-
----
-
-### 4. Database-Based System
-
-All templates are stored in:
-
-- `wp_posts` (post type: `wp_template`, `wp_template_part`)
-
-There are **no physical template files required**.
-
----
-
-## ✅ Recommended Setup
-
-For each language:
-
-- Provide at least:
-  - `search-{lang}`
- 
-using the Theme Options under Appearance if you want to use the Search Block.
-
-The rest of the the templates and template parts can be provided using the Theme Editor for language specific
-
-  - `headers`
-  - `footers`
-  - `navigations`
-  - `sidebars`
-  - `page, post and other templates`
-
----
-
-## 🚀 Summary
-
-This language router:
-
-- Uses WordPress FSE as-is (no custom rendering engine)
-- Extends template resolution instead of replacing it
-- Keeps templates in the database
-- Enables clean, scalable multilingual setups
-
-👉 The more your templates follow FSE conventions, the smoother the integration.
-
-## Changelog
-
-The Language Router offers now a CHANGELOG added to the source as the complexity of the solution requires to add, fix and improve features and workflows available out
-of the box. We appreciate feedback. Language Routing and Translation is heavy stuff.
-
----
-
-## MU Meta Description For SEO (Full Control)
-
-A lightweight WordPress MU plugin that gives full control over meta descriptions without the overhead of large SEO plugins.
-
-### Features
-
-- Custom meta description field for posts and pages
-- Automatic fallback generation from excerpts or page content
-- Outputs standard SEO meta tags:
-  - `meta description`
-  - `Open Graph description`
-  - `Twitter description`
-- Preserves handcrafted descriptions without truncation
-- Automatically shortens generated fallback descriptions
-- UTF-8 safe truncation using multibyte functions
-- Minimal footprint and no frontend dependencies
-- Compatible with multilingual and custom editorial workflows
-
-### Description Logic
-
-The plugin uses the following priority order:
-
-1. Custom meta description
-2. Post excerpt
-3. Trimmed page content
-4. Site description fallback
-
-### Automatic Fallback Truncation
-
-Automatically generated descriptions are shortened to avoid excessively long SERP snippets, while manually crafted descriptions remain untouched.
-
-### Designed For
-
-Ideal for lightweight WordPress setups, custom themes and sites that prefer direct SEO control without large SEO frameworks.
-
----
-
-**MSLS is abandoned. It's in here because it may serve as an intersting code for Wordpress sites using Multisite configuration for Wordpress, which is not our case anymore.
-That said, don't try to use this with our Language Router, the two approaches to deliver a webiste for several languages are completly different.**
-
-## MSLS
-
-We use (not anymore):
-
-**Multisite Language Switcher (MSLS)**  
-(one of the few truly free plugins)
-
-MSLS is for WP Multisite, finally the better approach for small multilingual sites is a single site with multilanguage support. 
-
-(Please see above our Language Router and Language Switcher for Language Router implementation which offer a complete solution for single sites.)
-
-But it is not enough.
-
-👉 We added custom code to:
-- increase flexibility  
-- fix issues found in the current WordPress version  
-
-Here’s the CSS part as an example. It is not included in the code — in a more structured setup, it would be loaded via the mu-plugin, but this repository is intended more as a brainstorming workspace.
-```
-/* Caltalaia custom language switcher for MSLS */
-/* =========================================
-   Variables (theme-friendly)
-========================================= */
-.msls-switcher {
-    --msls-bg: #fff;
-    --msls-color: currentColor;
-    --msls-border: rgba(0,0,0,0.08);
-    --msls-hover: rgba(0,0,0,0.05);
-    --msls-shadow: 0 10px 26px rgba(0,0,0,0.14);
-    --msls-radius: 8px;
-    --msls-speed: 0.18s;
-    --msls-delay: 0.04s;	
-}
-
-/* Dark mode */
-/*
-@media (prefers-color-scheme: dark) {
-    .msls-switcher {
-        --msls-bg: #1e1e1e;
-        --msls-color: #eee;
-        --msls-border: rgba(255,255,255,0.1);
-        --msls-hover: rgba(255,255,255,0.08);
-        --msls-shadow: 0 10px 26px rgba(0,0,0,0.5);
-    }
-}
-*/
-/* =========================================
-   Container
-========================================= */
-.msls-switcher {
-    position: relative;
-    display: inline-block;
-    font-size: 1.3rem;
-	font-family: var(--wp--preset--font-family--base-hand);	
-    color: var(--msls-color);
-	color-scheme: light;
-	margin-block-start: 0;
-}
-
-/* =========================================
-   Toggle
-========================================= */
-.msls-toggle {
-    list-style: none;
-    cursor: pointer;
-    outline: none;	
-}
-
-.msls-current {
-    display: inline-flex;
-    align-items: center;
-	vertical-align: center;
-    gap: 0.35em;
-}
-
-/* Arrow */
-.msls-current::after {
-    content: "▾";
-    font-size: 1.7em;
-    opacity: 0.6;
-    transition: transform var(--msls-speed) ease;
-}
-
-.msls-toggle .msls-current img, .msls-toggle .msls-current svg {
-	height: calc(var(--wp--custom--fixed-bottom-bar--icon-size) - 1rem);
-	width: calc(var(--wp--custom--fixed-bottom-bar--icon-size) - 1rem);	
-}
-
-.msls-toggle .msls-current svg {
-	fill: currentColor;
-	display: inline-block;
-}
-
-.msls-toggle .msls-current svg path {
-	fill: currentColor;
-}
-
-.msls-toggle:hover .msls-current::after,
-.msls-toggle:focus-within .msls-current::after {
-    transform: rotate(180deg);
-}
-```
-
----
-
-## Icons Without Overhead
-
-This may not seem critical, but we strongly dislike the overkill and overhead associated with icon systems like Font Awesome — especially CSS-based integration and unnecessary payload.
-
-We implemented a small module that allows loading a custom icon file. Icons can be extracted from Font Awesome (respecting licensing — attribution should remain within the SVG code).
-
-This approach provides:
-- lightweight icon usage  
-- full control over assets  
-- direct integration (icons can be used as links without additional wrappers)  
-
----
-
-## Icon Build Process
-
-Preparing the icon set requires a small preprocessing step.
-
-We include a very simple Node.js script under Helpers with a current and free FontAwesome version:
-
-**`build-icons.js`**
-
-This script generates a usable icon set (e.g. from Font Awesome) for integration with the **SVG Icon Button block**.
-
-It is intentionally minimal and can be adapted as needed. You can extend the script to include other fonts or svg icons. The list of icons to include in your icons.svg is handled via the icons-list.json file.
-
----
-
-## Distribution
-
-Fetch whatever you need from the sources. There's a lot of space for improvements or simply fetch the idea and do better.
+A small Node.js build script (`build-icons.js`, under `Helpers/`) generates the sprite from a curated `icons-list.json`. Icons extracted from Font Awesome retain their original attribution in the SVG source. The resulting icons work as direct inline elements and can serve as links without additional wrappers.
 
 ---
 
 ## Disclaimer
 
-Everything was developed with the support of artificial intelligence, but required extensive review, correction, and time to reach a minimally acceptable and reliable result.
+Everything here was developed with AI assistance but required extensive review, correction, and time to reach a reliable result. The code works for our specific setup and may not behave identically in other environments. It may serve as a base for more complex or commercial plugins.
 
-The code can be significantly improved. It currently works for our specific needs, but we cannot guarantee its behavior in other contexts.
+No attribution required. We are not interested in taking on additional work or responsibility related to this code. It's all yours.
 
-It may serve as a base for more complex plugins, including commercial ones.
-
-**No attribution required.**  
-We are not interested in additional work or responsibility related to this code.
-
-**It’s all yours.**
-
-## Environment
-
-The code was built and tested on a fresh WordPress instance (v6.9.4) running on PHP v8.3.30. We used ChatGPT to assist, which definitely reduced development time — but believe me, sometimes it drives you mad…
+**Environment:** WordPress 6.x · PHP 8.3
