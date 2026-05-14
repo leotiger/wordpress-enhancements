@@ -2,19 +2,22 @@
 /**
  * Plugin Name: Cal Talaia Gutenberg Enhancements
  * Author: Uli Hake
- * Version: 1.1.0
+ * Version: 1.2.0
  */
 
 if (!defined('ABSPATH')) exit;
 
+// Register editor styles at the correct lifecycle point
+add_action('after_setup_theme', function () {
+    add_theme_support('editor-styles');
+    add_editor_style(plugin_dir_url(__FILE__) . 'gutenberg-enhancements.css');
+});
+
 add_action('enqueue_block_editor_assets', function () {
 
     wp_enqueue_media();
-	
-	add_theme_support('editor-styles');
-	add_editor_style('./gutenberg-editor-enhancements.css');	
 
-	
+
     wp_register_script(
         'gb-enhance-inline-tools',
         false,
@@ -32,7 +35,7 @@ add_action('enqueue_block_editor_assets', function () {
     wp_add_inline_script('gb-enhance-inline-tools', <<<'JS'
 (function(wp){
 
-    const { registerFormatType, toggleFormat, insert, create } = wp.richText;
+    const { registerFormatType, toggleFormat, insert, create, remove } = wp.richText;
     const { BlockFormatControls } = wp.blockEditor;
     const { createElement: el, Fragment, useState, useEffect } = wp.element;
     const { DropdownMenu, Button, TextControl, Popover } = wp.components;
@@ -117,10 +120,6 @@ add_action('enqueue_block_editor_assets', function () {
 
 			const { value, onChange } = props;
 
-			const { createElement: el, Fragment, useState, useEffect } = wp.element;
-			const { Button, TextControl, Popover } = wp.components;
-			const { insert, create, remove } = wp.richText;
-
 			const [open, setOpen] = useState(false);
 			const [width, setWidth] = useState(80);
 			const [height, setHeight] = useState(80);
@@ -161,7 +160,7 @@ add_action('enqueue_block_editor_assets', function () {
 					   'data-align="' + align + '" ' +
 					   'data-lightbox="' + (lightbox ? 'true' : 'false') + '" ' +
 					   'contenteditable="false">' +
-							'<span class="' + cls.img + '" style="' + buildStyle(url) + '"></span>' +
+							'<span class="' + cls.img + '" style="' + buildStyle(url) + '" data-bg="' + url + '"></span>' +
 					   '</span>';
 			};
 			
@@ -198,11 +197,12 @@ add_action('enqueue_block_editor_assets', function () {
 				const img = node.querySelector('.inline-image');
 				if (!img) return;
 
-				const style = img.getAttribute('style') || '';
-				const urlMatch = style.match(/url\((.*?)\)/);
-				if (!urlMatch) return;
-
-				const url = urlMatch[1];
+				// Prefer data-bg (set by buildHTML); fall back to parsing the inline style
+				const url = img.getAttribute('data-bg') || (() => {
+					const m = (img.getAttribute('style') || '').match(/url\((.*?)\)/);
+					return m ? m[1] : null;
+				})();
+				if (!url) return;
 
 				const doc = node.ownerDocument;
 				const sel = doc.getSelection();
@@ -325,7 +325,7 @@ add_action('enqueue_block_editor_assets', function () {
 						if (!isNaN(w)) setWidth(w);
 						if (!isNaN(h)) setHeight(h);
 						if (a) setAlign(a);
-						setLightbox(l);
+						setLightbox(l === 'true'); // data attribute is a string; coerce to boolean
 
 						// AUTO OPEN
 						setOpen(true);
@@ -455,17 +455,11 @@ document.addEventListener('click', function (e) {
     const img = el.querySelector('.inline-image');
     if (!img) return;
 
-    const style = img.getAttribute('style') || '';
-    const match = style.match(/url\((.*?)\)/);
+    // data-bg is set by v1.2.0+; fall back to parsing the inline style for older saved content
+    const styleMatch = (img.getAttribute('style') || '').match(/url\((.*?)\)/);
+    const src = (img.getAttribute('data-bg') || (styleMatch ? styleMatch[1] : '') || '').trim();
 
-    if (!match) return;
-
-    //const src = match[1];
-	const src = (
-		img.dataset.bg ||
-		img.getAttribute('data-bg') ||
-		''
-	).trim();
+    if (!src) return;
     // -----------------------------
     // CREATE OVERLAY
     // -----------------------------

@@ -1,15 +1,17 @@
 /**
  * Plugin Name: Cal Talaia Gutenberg Enhancements
  * Author: Uli Hake
- * Version: 1.0
+ * Version: 1.2.0
  */
 
-.inline-image-wrapper:hover {
-    outline: 2px solid #007cba;
-}
+/* ── Inline image wrapper (editor) ─────────────────────────── */
 
 .inline-image-wrapper {
     cursor: pointer;
+}
+
+.inline-image-wrapper:hover {
+    outline: 2px solid #007cba;
 }
 
 .inline-image-wrapper.is-hovered {
@@ -19,4 +21,19 @@
 .inline-image-wrapper.is-selected {
     outline: 2px solid #007cba;
     outline-offset: 2px;
+}
+
+/* ── Lightbox overlay animations (front-end) ────────────────── */
+
+.caltalaia-lightbox {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.caltalaia-lightbox.is-visible {
+    opacity: 1;
+}
+
+.caltalaia-lightbox.is-closing {
+    opacity: 0;
 }
