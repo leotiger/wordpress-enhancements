@@ -15,6 +15,7 @@ class Registry {
         self::register(new MetaDescription());
         self::register(new ExcerptGenerator());
         self::register(new Translation());
+        self::register(new ContentGenerator());
     }
 
     public static function register(

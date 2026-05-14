@@ -86,10 +86,19 @@ wordpress-enhancements/
 │   └── mu-meta-description.php         # SEO meta description
 │
 ├── ai/
-│   ├── wpenhance-ai.php                # AI panel — main plugin file
-│   ├── wpenhance-ai-settings.php       # Settings page (API keys, provider)
-│   ├── wpenhance-ai-api.php            # Provider abstraction layer
-│   └── wpenhance-ai-editor.js          # Gutenberg sidebar panel
+│   ├── wpenhance-ai.php                # Plugin entry point
+│   ├── includes/
+│   │   ├── Core/                       # Autoloader, bootstrap, config, key & cache stores
+│   │   ├── Contracts/                  # AIProviderInterface
+│   │   ├── Features/                   # MetaDescription, ExcerptGenerator, Translation, ContentGenerator
+│   │   ├── Providers/                  # Anthropic, OpenAI, Gemini clients + ProviderFactory
+│   │   ├── Admin/                      # MetaBox, SettingsPage
+│   │   └── REST/                       # FeatureController (POST /wpenhance-ai/v1/...)
+│   ├── assets/
+│   │   ├── admin.js                    # Meta box UI: fetch, render, Apply to Editor, Copy
+│   │   └── admin.css
+│   └── templates/
+│       └── prompts/                    # Prompt templates (meta-description, translation, content-generator)
 │
 ├── svg/
 │   └── svg-icons.php                   # SVG sprite loader
@@ -376,9 +385,9 @@ update_post_meta( $post_id, '_mu_meta_description', 'Hand-crafted description.' 
 
 ## WPEnhance AI
 
-**Files:** `ai/wpenhance-ai.php`, `ai/wpenhance-ai-settings.php`, `ai/wpenhance-ai-api.php`, `ai/wpenhance-ai-editor.js`
+**Files:** `ai/wpenhance-ai.php` (entry point) + `ai/includes/`, `ai/assets/`, `ai/templates/`
 
-An AI assistance framework built as an mu-plugin, adding an editorial panel to the Gutenberg meta box area with three AI-powered features.
+An AI assistance framework built as an mu-plugin, adding an editorial panel to the Gutenberg meta box area with four AI-powered features.
 
 ### Features
 
@@ -401,13 +410,25 @@ Translates the full post or page content to a target language while preserving:
 
 Translations are **never applied automatically**. Results appear in a review panel where the editor can inspect, copy, or apply the output.
 
+#### Content Generator
+
+Drafts or rewrites post content from the title and any existing body text, directly from the editor panel. Two controls let the editor shape the output before generating:
+
+**Tone** — Informative, Persuasive, Storytelling, Technical, or Conversational.
+
+**Output type** — Full Article, Introduction only, or Structured Outline.
+
+When the post already has content, it is passed to the model as context (stripped of HTML, capped at 6 000 characters), so the model can extend or rewrite it rather than starting from a blank slate — useful at any stage of drafting, not just on empty posts. Generated output uses native Gutenberg block markup (`<!-- wp:paragraph -->`, `<!-- wp:heading -->`, `<!-- wp:list -->`) and slots directly into the block editor without post-processing. Results are never applied automatically; the editor clicks **Apply to Editor** or **Copy**.
+
+Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.6).
+
 ### Supported AI Providers
 
 | Provider | Models used |
 |----------|-------------|
-| Anthropic Claude | `claude-haiku-4-5-20251001` (short output), `claude-sonnet-4-6` (translation) |
-| OpenAI | `gpt-4o-mini` (short output), `gpt-4o` (translation) |
-| Google Gemini | `gemini-1.5-flash` (short output), `gemini-1.5-pro` (translation) |
+| Anthropic Claude | `claude-haiku-4-5-20251001` (short output), `claude-sonnet-4-6` (translation, content generation) |
+| OpenAI | `gpt-4o-mini` (short output), `gpt-4o` (translation, content generation) |
+| Google Gemini | `gemini-1.5-flash` (short output), `gemini-1.5-pro` (translation, content generation) |
 
 The active provider is selected from **Settings → WPEnhance AI**.
 
@@ -424,7 +445,7 @@ define( 'WPAI_GEMINI_KEY',    'AIza...' );
 
 ### Result Caching
 
-All three features support result caching. A SHA-256 hash of the inputs (content + title + language) determines whether the content has changed since the last generation. Cached results are marked with a badge in the UI; a Refresh button forces a new API call.
+All four features support result caching. A SHA-256 hash of the inputs (content + title + language) determines whether the content has changed since the last generation. Cached results are marked with a badge in the UI; a Refresh button forces a new API call.
 
 ### Hooks and Filters
 
@@ -434,6 +455,7 @@ All three features support result caching. A SHA-256 hash of the inputs (content
 | `wpai_prompt_meta_description` | filter | Modify the meta description generation prompt |
 | `wpai_prompt_excerpt` | filter | Modify the excerpt generation prompt |
 | `wpai_prompt_translation` | filter | Modify the translation prompt |
+| `wpai_prompt_content_generator` | filter | Modify the content drafting / rewriting prompt |
 | `wpai_before_api_call` | action | Fires before any API request is dispatched |
 | `wpai_after_api_call` | action | Fires after a successful API response is received |
 | `wpai_cache_ttl` | filter | Cache lifetime in seconds (default: no expiry until content changes) |

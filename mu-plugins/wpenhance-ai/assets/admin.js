@@ -202,7 +202,10 @@ async function runFeature(featureKey, postId, params, resultEl) {
 // ─── Render helpers ───────────────────────────────────────────────────────────
 
 /**
- * Render the result area for full-content outputs (e.g. translations).
+ * Render the result area for full-content outputs (translations, generated content…).
+ *
+ * Builds the meta summary line dynamically based on which feature produced
+ * the result, so new content-type features don't require JS changes.
  */
 function renderContentResult(container, data, featureKey, postId) {
 
@@ -214,6 +217,28 @@ function renderContentResult(container, data, featureKey, postId) {
         ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
         : '';
 
+    // ── Meta summary line (feature-specific) ──────────────────────────────────
+    let metaSummary;
+
+    if (featureKey === 'translation' && data.language) {
+
+        metaSummary = `Translated to: <strong>${escapeHtml(data.language)}</strong>`;
+
+    } else if (featureKey === 'content-generator') {
+
+        const parts = [];
+        if (data.content_type) parts.push(escapeHtml(data.content_type));
+        if (data.tone)         parts.push(escapeHtml(data.tone) + ' tone');
+        metaSummary = parts.length
+            ? parts.join(' · ')
+            : 'Content generated';
+
+    } else {
+
+        metaSummary = 'Content ready';
+    }
+
+    // ── Footnotes note (translation only) ─────────────────────────────────────
     const footnotesNote = data.footnotes
         ? `<p class="wpenhance-ai-result-meta">
                ${countFootnotes(data.footnotes)} footnote(s) translated — applied together with content.
@@ -227,7 +252,7 @@ function renderContentResult(container, data, featureKey, postId) {
     container.innerHTML = `
         <div class="wpenhance-ai-content-result"${footnotesAttr}>
             <p class="wpenhance-ai-result-meta">
-                Translated to: <strong>${escapeHtml(data.language)}</strong>${cachedBadge}
+                ${metaSummary}${cachedBadge}
             </p>
             ${footnotesNote}
             <textarea

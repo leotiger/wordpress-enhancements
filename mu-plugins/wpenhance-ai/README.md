@@ -1,6 +1,6 @@
 # WPEnhance AI
 
-An AI assistance framework for WordPress, delivered as an mu-plugin. Adds a lightweight editorial panel to the Gutenberg meta box that lets editors generate meta descriptions, post excerpts, and full-content translations without leaving the editor — and without shipping an AI product disguised as a WordPress plugin.
+An AI assistance framework for WordPress, delivered as an mu-plugin. Adds a lightweight editorial panel to the Gutenberg meta box that lets editors generate meta descriptions, post excerpts, full-content translations, and complete post drafts without leaving the editor — and without shipping an AI product disguised as a WordPress plugin.
 
 Supports Anthropic Claude, OpenAI, and Google Gemini as interchangeable backends.
 
@@ -33,6 +33,22 @@ The target language selector is pre-populated from the post's `_lang` meta, so a
 Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.2) for higher fidelity on long multilingual content.
 
 **Supported target languages:** English, Spanish, German, French, Italian, Portuguese, Dutch, Catalan, Polish, Russian, Chinese (Simplified), Japanese, Arabic.
+
+### Content Generator
+
+Drafts or rewrites post content from the title and any existing body text, directly from the editor panel. Two controls let the editor shape the output before generating:
+
+**Tone** — Informative, Persuasive, Storytelling, Technical, or Conversational.
+
+**Output type** — Full Article, Introduction only, or Structured Outline.
+
+Results appear in the same review panel used by Translation: the content is never applied automatically. The editor clicks **Apply to Editor** to dispatch the result to the Gutenberg block editor, or **Copy** to handle it manually.
+
+When the post already has content, it is passed to the model as context (stripped of HTML markup, capped at 6 000 characters). The model can extend or rewrite it rather than starting from a blank slate, making the feature useful at any stage of drafting — not just on empty posts.
+
+Generated output uses native Gutenberg block markup (`<!-- wp:paragraph -->`, `<!-- wp:heading -->`, `<!-- wp:list -->`) so results slot directly into the block editor without post-processing.
+
+Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.6).
 
 ---
 
@@ -129,6 +145,7 @@ wpenhance-ai/
       MetaDescription.php       Meta description generation feature
       ExcerptGenerator.php      Excerpt generation feature
       Translation.php           Full-content translation feature
+      ContentGenerator.php      AI content drafting and rewriting feature
     Providers/
       ProviderFactory.php       Instantiates the active provider for a WorkerConfig
       WorkerConfig.php          Immutable DTO: model, max_tokens, temperature
@@ -148,6 +165,7 @@ wpenhance-ai/
     prompts/
       meta-description.txt      Prompt template for meta description generation
       translation.txt           Prompt template for content translation
+      content-generator.txt     Prompt template for content drafting / rewriting
 ```
 
 Each feature declares its own model and generation parameters via `get_worker_config()`, independent of the global provider setting. Adding a new feature requires only implementing `FeatureInterface` and registering it in `Registry.php` — no changes to providers or the factory.

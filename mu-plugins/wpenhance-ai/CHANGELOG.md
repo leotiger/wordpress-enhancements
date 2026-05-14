@@ -1,5 +1,55 @@
 # Changelog
 
+## [0.7.0] — 2026-05-14
+
+Adds a Content Generator feature that drafts or rewrites post content directly from the editor panel, with selectable tone and output type.
+
+### UX Improvements
+
+* Two new controls appear above the **Generate Content** button: a **Tone** selector
+  (Informative, Persuasive, Storytelling, Technical, Conversational) and an **Output** selector
+  (Full Article, Introduction only, Structured Outline). Both have sensible defaults so editors
+  can fire off a generation with a single click.
+* The result appears in the same review panel used by Translation — **Apply to Editor** and
+  **Copy** buttons, with a summary line showing the combination used (e.g. *"Full Article ·
+  Persuasive tone"*). Content is never applied automatically.
+* When the post already has content, it is passed to the model as context. The model can
+  extend or rewrite it rather than starting from a blank slate, which keeps the feature useful
+  at every stage of drafting.
+
+### Technical Notes
+
+* Generated output uses native Gutenberg block markup (`<!-- wp:paragraph -->`,
+  `<!-- wp:heading -->`, `<!-- wp:list -->`) so results drop straight into the block editor
+  without post-processing.
+* The cache is keyed per tone + output-type combination
+  (`_wpenhance_cache_content-generator_informative_full_article`, etc.), so multiple variants
+  of the same post can coexist in cache independently.
+* `renderContentResult()` in `admin.js` now builds its meta summary line dynamically from
+  `featureKey` and the response payload, rather than always writing "Translated to:". This
+  makes the function generic for any future `type: content` feature without further JS changes.
+* Existing content is stripped of HTML before being sent as context (`wp_strip_all_tags`),
+  capped at 6 000 characters to stay well within token budgets even for long posts.
+
+### Added
+
+* **Content Generator feature** (`includes/Features/ContentGenerator.php`) — drafts or rewrites
+  post content using `claude-sonnet-4-6` (8 192 token budget, temperature 0.6). UI fields:
+  Tone × 5 options, Output × 3 options. Returns `type: content` for the existing Apply /
+  Copy flow.
+* **`templates/prompts/content-generator.txt`** — prompt template with `{{title}}`, `{{tone}}`,
+  `{{content_type}}`, and `{{existing_content}}` placeholders. Instructs the model to produce
+  clean Gutenberg block markup with no preamble or meta-commentary.
+
+### Changed
+
+* `Registry::init()` — registers `ContentGenerator` alongside the existing three features.
+* `admin.js` `renderContentResult()` — meta summary line is now built dynamically:
+  `translation` → *"Translated to: {language}"*; `content-generator` → *"{Output} · {Tone}
+  tone"*; any future feature → *"Content ready"*. No other JS changes required.
+
+---
+
 ## [0.6.0] — 2026-05-14
 
 Adds a force-refresh control to bypass the cache on demand, and refactors the JS fetch logic
