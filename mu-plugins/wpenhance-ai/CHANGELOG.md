@@ -4,11 +4,22 @@
 
 ### Fixed
 
+* **`<br>` tags re-introduced by `wpautop` in REST responses** — root cause
+  identified: some plugins/themes apply `the_content` filter (which includes
+  `wpautop`) to REST API responses. `wpautop` converts every single newline
+  between a Gutenberg block comment and its inner HTML into a `<br />` tag,
+  breaking the block parser. The PHP-level strip added in 1.0.0 ran *before*
+  these filters, so it had no effect on the final response. Fixed by adding a
+  `rest_pre_echo_response` hook at priority 999 in `FeatureController` — the
+  very last step before WordPress echoes the response — which strips any `<br>`
+  from the `output` field after all other filters have run.
+
 * **JS `<br>` strip not loading in browser** — the `admin.js` `<br>` strip
   added in 1.0.0 was not being picked up because the enqueued asset version
   was already `1.0.0`, so WordPress served the cached pre-strip file.
   Asset versions bumped to `1.0.1` in `MetaBox::enqueue()` to force a fresh
-  browser fetch.
+  browser fetch. The JS strip now serves as a final client-side safety net
+  in case any `<br>` survives the server-side strip.
 
 ---
 
