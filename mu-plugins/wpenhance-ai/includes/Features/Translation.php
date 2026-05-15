@@ -160,7 +160,7 @@ class Translation implements FeatureInterface {
 
         $footnotes_raw = ($param_footnotes !== '' && json_decode($param_footnotes) !== null)
             ? $param_footnotes
-            : (string) get_post_meta($post_id, '_footnotes', true);
+            : (string) get_post_meta($post_id, 'footnotes', true);
         $cache_key     = $this->get_key() . '_' . $target_language;
         $hash          = CacheStore::hash([$post->post_title, $post->post_content, $footnotes_raw, $target_language]);
         $cached = empty($params['force_refresh'])
@@ -208,7 +208,7 @@ class Translation implements FeatureInterface {
         $extra_output   = '';
         $extra_sections = [];
 
-        // ── WordPress core footnotes (_footnotes post meta) ───────────────────
+        // ── WordPress core footnotes (footnotes post meta) ────────────────────
         if ($footnotes_raw !== '') {
             $decoded = json_decode($footnotes_raw, true);
             if (is_array($decoded) && !empty($decoded)) {

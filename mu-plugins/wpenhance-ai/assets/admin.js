@@ -111,7 +111,7 @@ document.addEventListener('click', async (event) => {
         // Apply footnotes through the Gutenberg store so they are part of the
         // same save cycle as the content.  Writing directly to the DB via a
         // REST call would be overwritten the moment the user hits Save, because
-        // Gutenberg flushes its own meta.footnotes back to _footnotes on save.
+        // Gutenberg flushes its own meta.footnotes back to footnotes on save.
         const footnotesJson = result?.dataset.footnotes || '';
         if (footnotesJson) payload.meta = { footnotes: footnotesJson };
 
@@ -376,7 +376,7 @@ function renderRefreshRow(featureKey, postId) {
  * Collect the values of any extra UI fields belonging to a feature.
  * Handles both <select> and <textarea> input fields.
  *
- * For the translation feature, also reads the current _footnotes value
+ * For the translation feature, also reads the current footnotes value
  * from the Gutenberg editor meta store (window.parent.wp.data) so that
  * unsaved footnotes are captured even before the post is saved to the DB.
  */
@@ -395,8 +395,7 @@ function collectParams(panel, featureKey) {
 
     // Pull footnotes from the live editor meta store so translation always
     // works against the current in-editor state, not the last-saved DB value.
-    // Note: Gutenberg exposes the meta key as "footnotes" (no leading underscore)
-    // via getEditedPostAttribute('meta'), even though the DB key is "_footnotes".
+    // The meta key is "footnotes" both in the Gutenberg editor store and in the DB.
     // Skip this in chunk mode — the user supplies the text to translate directly.
     if (featureKey === 'translation' && params.translate_mode !== 'chunk' && window.parent.wp?.data) {
 

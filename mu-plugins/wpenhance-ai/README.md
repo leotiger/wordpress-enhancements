@@ -28,7 +28,7 @@ Translates the full post or page content to a selected target language while pre
 
 **Block attribute translation** — native blocks like `wp:details` (accordion / disclosure) store their visible text as JSON attribute values inside the block comment rather than in the HTML body. A naive translation pass would leave those strings in the original language, causing the block editor to silently overwrite the translated HTML on the next open. Before sending content to the API, the plugin extracts those strings and replaces them with `__WPAI_N__` placeholders; they are translated in the same API call and reinserted with proper JSON escaping before the result is returned. The extraction covers `summary`, `alt`, `caption`, `label`, `placeholder`, `buttonText`, `title`, and `description` attributes across all block depths.
 
-**Footnote translation** — when the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), the plugin attempts to translate them in the same API call as the body content, keeping terminology consistent. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry. See the Known Limitations section below.
+**Footnote translation** — when the post has native WordPress footnotes (`footnotes` post meta, introduced in WP 6.3), the plugin attempts to translate them in the same API call as the body content, keeping terminology consistent. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry. See the Known Limitations section below.
 
 The target language selector is pre-populated from the post's `_lang` meta, so a French page already has French selected when the panel opens.
 
@@ -40,14 +40,14 @@ Uses the **Quality** model tier (default: `claude-sonnet-4-6`, 8 192 token budge
 
 A **Mode** selector in the Translation panel offers two options:
 
-- **Full post** — the default behaviour: translate the entire post content, title, block attributes, and footnotes in one API call.
+- **Full post** — the default behaviour: translate the entire post content, title, and block attributes in one API call. Footnotes are not reliably translated in this mode — see Known Limitations below.
 - **Translate chunk** — a **Text to translate** textarea appears. Paste any snippet of text — a footnote, a heading, a sentence — click the action button, and get back only that snippet translated. The result shows a Copy button with no Apply to Editor, since the user applies it manually wherever it is needed.
 
 Chunk mode is the recommended workaround whenever the full-post path is unreliable (see Known Limitations below).
 
 #### Known limitations
 
-**Footnotes are fragile in full-post mode.** WordPress stores footnotes separately in `_footnotes` post meta as a JSON array. When a full-post translation runs, the footnote JSON is appended to the prompt and the model is asked to return a translated `===FOOTNOTES===` section. In practice this is unreliable: long posts push the combined prompt close to context limits, and the model sometimes omits or corrupts the footnotes section even when the content body translates correctly.
+**Footnotes are fragile in full-post mode.** WordPress stores footnotes separately in `footnotes` post meta as a JSON array. When a full-post translation runs, the footnote JSON is appended to the prompt and the model is asked to return a translated `===FOOTNOTES===` section. In practice this is unreliable: long posts push the combined prompt close to context limits, and the model sometimes omits or corrupts the footnotes section even when the content body translates correctly.
 
 **Workaround:** copy each footnote's text from the WordPress editor footnote panel, switch the Mode selector to *Translate chunk*, paste into the **Text to translate** field, run the translation, and copy the result back into the footnote field. This is more manual but reliable for any length and complexity of footnote. The full-post translation can still be used for the content body — the two workflows are independent.
 
