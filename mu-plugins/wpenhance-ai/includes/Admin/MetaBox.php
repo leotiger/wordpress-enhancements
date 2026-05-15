@@ -34,7 +34,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.js',
             ['wp-api'],
-            '1.0.2',
+            '1.0.5',
             true
         );
 
@@ -51,7 +51,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.css',
             [],
-            '1.0.2'
+            '1.0.5'
         );
     }
 
@@ -62,7 +62,7 @@ class MetaBox {
             'WPEnhance AI',
             [self::class, 'render'],
             ['post', 'page'],
-            'side',
+            'normal',
             'high'
         );
     }
@@ -87,7 +87,22 @@ class MetaBox {
 
                     <?php if (!empty($ui_fields)): ?>
                         <div class="wpenhance-ai-feature-fields">
-                            <?php foreach ($ui_fields as $field): ?>
+                            <?php foreach ($ui_fields as $field):
+
+                                // Conditional visibility: wrap in a div with data-condition-* attrs
+                                // so JS can show/hide based on another field's current value.
+                                $has_condition   = !empty($field['condition']) && is_array($field['condition']);
+                                $condition_field = $has_condition ? (string) array_key_first($field['condition']) : '';
+                                $condition_value = $has_condition ? (string) $field['condition'][$condition_field] : '';
+                            ?>
+
+                                <div
+                                    class="wpenhance-ai-field-wrapper"
+                                    <?php if ($has_condition): ?>
+                                        data-condition-field="<?php echo esc_attr($condition_field); ?>"
+                                        data-condition-value="<?php echo esc_attr($condition_value); ?>"
+                                    <?php endif; ?>
+                                >
 
                                 <?php if ($field['type'] === 'textarea'): ?>
                                     <label class="wpenhance-ai-label">
@@ -96,7 +111,7 @@ class MetaBox {
                                             class="wpenhance-ai-input-textarea"
                                             data-field="<?php echo esc_attr($field['name']); ?>"
                                             data-feature-ref="<?php echo esc_attr($feature->get_key()); ?>"
-                                            rows="4"
+                                            rows="<?php echo esc_attr($field['rows'] ?? 4); ?>"
                                             placeholder="<?php echo esc_attr($field['placeholder'] ?? ''); ?>"
                                         ><?php echo esc_textarea($defaults[$field['name']] ?? ''); ?></textarea>
                                     </label>
@@ -124,6 +139,8 @@ class MetaBox {
                                         </select>
                                     </label>
                                 <?php endif; ?>
+
+                                </div><!-- .wpenhance-ai-field-wrapper -->
 
                             <?php endforeach; ?>
                         </div>

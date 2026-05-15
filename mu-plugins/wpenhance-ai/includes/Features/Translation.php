@@ -62,10 +62,27 @@ class Translation implements FeatureInterface {
 
         return [
             [
+                'name'    => 'translate_mode',
+                'type'    => 'select',
+                'label'   => 'Mode',
+                'options' => [
+                    'full'  => 'Full post',
+                    'chunk' => 'Translate chunk',
+                ],
+            ],
+            [
                 'name'    => 'target_language',
                 'type'    => 'select',
                 'label'   => 'Target Language',
                 'options' => self::LANGUAGES,
+            ],
+            [
+                'name'        => 'chunk_text',
+                'type'        => 'textarea',
+                'label'       => 'Text to translate',
+                'placeholder' => 'Paste a footnote, sentence, or any snippet here…',
+                'rows'        => 6,
+                'condition'   => ['translate_mode' => 'chunk'],
             ],
         ];
     }
@@ -93,16 +110,6 @@ class Translation implements FeatureInterface {
 
     public function run(int $post_id, array $params = []): array {
 
-        $post = get_post($post_id);
-
-        if (!$post) {
-
-            return [
-                'success' => false,
-                'error'   => 'Post not found.',
-            ];
-        }
-
         $target_language = sanitize_text_field(
             $params['target_language'] ?? 'en'
         );
@@ -116,6 +123,27 @@ class Translation implements FeatureInterface {
         }
 
         $language_name = self::LANGUAGES[$target_language];
+
+        // ── Chunk mode ────────────────────────────────────────────────────────
+        // Translate an arbitrary text snippet instead of the full post.
+        // Useful as a manual workaround for footnotes or any passage that the
+        // full-post path struggles with (long content, complex footnotes, etc.).
+        $translate_mode = sanitize_text_field($params['translate_mode'] ?? 'full');
+
+        if ($translate_mode === 'chunk') {
+            return $this->run_chunk($language_name, $params);
+        }
+
+        // ── Full-post mode ────────────────────────────────────────────────────
+        $post = get_post($post_id);
+
+        if (!$post) {
+
+            return [
+                'success' => false,
+                'error'   => 'Post not found.',
+            ];
+        }
 
         // ── Cache check ───────────────────────────────────────────────────────
         // Cache key is per-language so multiple translations of the same post
@@ -348,5 +376,80 @@ class Translation implements FeatureInterface {
         CacheStore::set($post_id, $cache_key, $hash, $payload);
 
         return array_merge(['success' => true], $payload);
+    }
+
+    // ── Chunk translation ─────────────────────────────────────────────────────
+
+    /**
+     * Translate a free-form text snippet rather than the full post.
+     *
+     * Chunk mode is a manual workaround for cases where the full-post path
+     * fails — most commonly long footnotes or complex HTML passages.  The user
+     * pastes the snippet, clicks Translate, gets back the translated text, and
+     * copies it wherever it is needed.
+     *
+     * No block-comment preservation, no ===FOOTNOTES=== parsing, no cache.
+     * The result is intentionally kept plain so it is easy to copy-paste.
+     *
+     * @param  string $language_name  Human-readable language name (e.g. "French").
+     * @param  array  $params         Request parameters; chunk_text is required.
+     * @return array
+     */
+    private function run_chunk(string $language_name, array $params): array {
+
+        $chunk_text = trim(wp_unslash($params['chunk_text'] ?? ''));
+
+        if ($chunk_text === '') {
+            return [
+                'success' => false,
+                'error'   => 'No text provided. Paste a snippet into the "Text to translate" field.',
+            ];
+        }
+
+        $prompt_template = file_get_contents(
+            WPENHANCE_AI_PATH . '/templates/prompts/translation_chunk.txt'
+        );
+
+        if ($prompt_template === false) {
+            return [
+                'success' => false,
+                'error'   => 'Chunk prompt template not found.',
+            ];
+        }
+
+        $prompt = str_replace(
+            ['{{language}}', '{{chunk_text}}'],
+            [$language_name, mb_substr($chunk_text, 0, 8000)],
+            $prompt_template
+        );
+
+        $provider = ProviderFactory::make($this->get_worker_config());
+
+        $result = $provider->chat([
+            [
+                'role'    => 'system',
+                'content' =>
+                    'You are a professional translator. ' .
+                    'Output only the translated text — no commentary, no preamble.',
+            ],
+            [
+                'role'    => 'user',
+                'content' => $prompt,
+            ],
+        ]);
+
+        if (empty($result)) {
+            return [
+                'success' => false,
+                'error'   => 'Translation failed. Please try again.',
+            ];
+        }
+
+        return [
+            'success'  => true,
+            'output'   => trim($result),
+            'type'     => 'chunk',
+            'language' => $language_name,
+        ];
     }
 }

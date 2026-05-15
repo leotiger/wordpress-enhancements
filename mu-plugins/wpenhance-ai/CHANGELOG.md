@@ -1,5 +1,61 @@
 # Changelog
 
+## [1.0.5] — 2026-05-15
+
+### Added
+
+* **Chunk translation mode** — a new **Mode** selector in the Translation panel offers two
+  options: *Full post* (the existing behaviour) and *Translate chunk*. In chunk mode a
+  **Text to translate** textarea appears; the user pastes any snippet of text — a footnote,
+  a heading, a sentence — clicks the action button, and receives only that snippet translated.
+  The result shows a Copy button with no *Apply to Editor*, since the user applies it manually
+  wherever it is needed. This is the recommended workaround for any content that the full-post
+  path handles unreliably (see Known Limitations below).
+* **Conditional field visibility** — a generic `data-condition-field` / `data-condition-value`
+  attribute system in `MetaBox.php` and `admin.js` allows any UI field to declare a visibility
+  condition. `initConditionalFields()` runs on `DOMContentLoaded` and wires up `change`
+  listeners, hiding or showing wrapped fields automatically. The chunk textarea uses this to
+  appear only when Mode = *Translate chunk*; any future conditional field requires no new JS.
+* **`templates/prompts/translation_chunk.txt`** — lightweight prompt for snippet translation:
+  auto-detects source language, preserves HTML and block comments, outputs only the translated
+  text with no separators or commentary.
+
+### Changed
+
+* **Metabox context moved from `'side'` to `'normal'`** — the WPEnhance AI panel now appears
+  in the main column below the editor instead of the narrow sidebar. This gives textareas,
+  result areas, and the chunk input field the full page width they need to be usable. The
+  previous sidebar placement made large result textareas effectively invisible without
+  manually resizing the panel.
+* **Feature groups rendered as cards** — each feature group now has a light border and
+  background, visually separating it from its neighbours. Groups use `flex-wrap` so they
+  sit side-by-side in the wider main column, and their fields use a CSS grid that places
+  select controls next to each other while keeping textareas on their own full-width row.
+* **Copy button scoped to its own result container** — the click handler now resolves the
+  target textarea from `button.closest('.wpenhance-ai-content-result')` instead of
+  `button.closest('.wpenhance-ai-panel')`, preventing it from accidentally copying a field
+  textarea from a different feature group.
+* Asset version bumped to `1.0.5` in `MetaBox::enqueue()` to force a browser cache refresh
+  for the updated JS and CSS.
+
+### Known Limitations
+
+* **Footnotes must be translated manually using chunk mode.** WordPress stores footnotes in
+  a separate `_footnotes` post meta field as a JSON array. When the full-post translation
+  runs, the footnote JSON is appended to the prompt and the model is instructed to return a
+  translated `===FOOTNOTES===` section. In practice this is fragile: long posts push the
+  combined prompt close to context limits, and the model sometimes omits or corrupts the
+  footnotes section even when the content body translates correctly.
+
+  **Workaround:** for each footnote, copy its text from the WordPress editor's footnote
+  panel, switch the Translation Mode to *Translate chunk*, paste the text into the
+  **Text to translate** field, run the translation, and copy the result back into the
+  footnote field. This is more manual but reliable for any length and complexity of footnote.
+  The full-post translation can still be used for the content body — the two workflows are
+  independent.
+
+---
+
 ## [1.0.4] — 2026-05-15
 
 ### Fixed

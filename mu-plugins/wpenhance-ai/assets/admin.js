@@ -1,5 +1,43 @@
 /* WPEnhance AI – admin meta box interactions */
 
+// ─── Conditional field visibility ────────────────────────────────────────────
+
+/**
+ * Show or hide field wrappers that carry data-condition-field / data-condition-value
+ * attributes.  A wrapper is visible only when the referenced controller field
+ * holds the expected value.  Runs once on DOMContentLoaded and again on every
+ * change event on a controlling select.
+ *
+ * @param {Element} panel  .wpenhance-ai-panel root element.
+ */
+function initConditionalFields(panel) {
+
+    panel.querySelectorAll('[data-condition-field]').forEach((wrapper) => {
+
+        const condField = wrapper.dataset.conditionField;
+        const condValue = wrapper.dataset.conditionValue;
+
+        const controller = panel.querySelector(
+            `[data-field="${condField}"]`
+        );
+
+        if (!controller) return;
+
+        const sync = () => {
+            wrapper.style.display = controller.value === condValue ? '' : 'none';
+        };
+
+        // Set initial state without transition flicker.
+        sync();
+
+        controller.addEventListener('change', sync);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.wpenhance-ai-panel').forEach(initConditionalFields);
+});
+
 // ─── Feature button click ────────────────────────────────────────────────────
 
 document.addEventListener('click', async (event) => {
@@ -105,8 +143,15 @@ document.addEventListener('click', async (event) => {
 
     if (!button) return;
 
-    const panel    = button.closest('.wpenhance-ai-panel');
-    const textarea = panel.querySelector('.wpenhance-ai-textarea');
+    // Scope the textarea search to the nearest result container so it does
+    // not accidentally grab a field textarea from another feature group.
+    const resultContainer =
+        button.closest('.wpenhance-ai-content-result') ||
+        button.closest('.wpenhance-ai-result');
+
+    const textarea = resultContainer
+        ? resultContainer.querySelector('.wpenhance-ai-textarea')
+        : button.closest('.wpenhance-ai-panel')?.querySelector('.wpenhance-ai-textarea');
 
     if (!textarea) return;
 
@@ -166,6 +211,10 @@ async function runFeature(featureKey, postId, params, resultEl) {
         if (data.type === 'content') {
 
             renderContentResult(resultEl, data, featureKey, postId);
+
+        } else if (data.type === 'chunk') {
+
+            renderChunkResult(resultEl, data);
 
         } else {
 
@@ -271,6 +320,37 @@ function renderContentResult(container, data, featureKey, postId) {
 }
 
 /**
+ * Render the result area for a chunk translation.
+ *
+ * No "Apply to Editor" button — the user copies and pastes the translated
+ * snippet manually wherever it belongs (e.g. into a footnote field).
+ */
+function renderChunkResult(container, data) {
+
+    const lang = data.language
+        ? `Chunk translated to: <strong>${escapeHtml(data.language)}</strong>`
+        : 'Chunk translated';
+
+    container.innerHTML = `
+        <div class="wpenhance-ai-content-result wpenhance-ai-chunk-result">
+            <p class="wpenhance-ai-result-meta">${lang}</p>
+            <p class="wpenhance-ai-chunk-hint">
+                Copy the result and paste it wherever needed (e.g. directly into the footnote field).
+            </p>
+            <textarea
+                class="wpenhance-ai-textarea wpenhance-ai-textarea--large"
+                rows="8"
+            >${escapeHtml(data.output)}</textarea>
+            <div class="wpenhance-ai-btn-row">
+                <button
+                    type="button"
+                    class="button button-secondary wpenhance-ai-copy"
+                >Copy</button>
+            </div>
+        </div>`;
+}
+
+/**
  * Render the force-refresh button with its explanatory hint.
  * Only shown when the current result came from the cache.
  */
@@ -317,7 +397,8 @@ function collectParams(panel, featureKey) {
     // works against the current in-editor state, not the last-saved DB value.
     // Note: Gutenberg exposes the meta key as "footnotes" (no leading underscore)
     // via getEditedPostAttribute('meta'), even though the DB key is "_footnotes".
-    if (featureKey === 'translation' && window.parent.wp?.data) {
+    // Skip this in chunk mode — the user supplies the text to translate directly.
+    if (featureKey === 'translation' && params.translate_mode !== 'chunk' && window.parent.wp?.data) {
 
         const meta = window.parent.wp.data
             .select('core/editor')
