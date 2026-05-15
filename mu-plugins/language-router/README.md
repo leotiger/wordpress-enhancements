@@ -314,17 +314,31 @@ Search results use `/?lang=de&s=query` URLs. The router intercepts the `get_bloc
 
 ## Third-party compatibility
 
-Place `.mo` files in the `languages/` directory (one level up — the plugin loads from `WPMU_PLUGIN_DIR/language-router/languages/`):
+### Overriding plugin translation strings
+
+Any `.mo` file placed in the `languages/` directory is loaded automatically at `init` priority 1, before plugins load their own translations. This lets you override the strings of any plugin without touching the plugin's own files.
+
+Files must follow the standard WordPress naming convention:
+
+```
+{textdomain}-{locale}.mo
+```
+
+Examples:
 
 ```
 languages/
-  vikbooking-ca.mo
-  vikbooking-de_DE.mo
-  complianz-gdpr-ca.po
+  myplugin-de_DE.mo      ← overrides 'myplugin' strings for the de_DE locale
+  myplugin-ca.mo         ← overrides 'myplugin' strings for the bare 'ca' locale
+  another-plugin-fr_FR.mo
   …
 ```
 
-SEO plugin hreflang output is suppressed automatically when `my_hreflang_mode` is `'custom'`. Confirmed compatible with: **Vik Booking**, **Complianz GDPR**, **Yoast SEO**, **Rank Math**, **AIOSEO**, **SEOPress**.
+The text domain is derived automatically from the filename, so no code changes are needed when adding a new plugin or a new language — just drop the file in.
+
+> Keep custom `.mo` files under version control. They will be silently ignored by the overridden plugin's own update process, but may still need manual review after upstream string changes.
+
+SEO plugin hreflang output is suppressed automatically when `my_hreflang_mode` is `'custom'`. Confirmed compatible with: **Yoast SEO**, **Rank Math**, **AIOSEO**, **SEOPress**.
 
 ---
 
@@ -357,6 +371,23 @@ Gutenberg footnotes cannot be copied reliably from a source page to a translatio
 5. Copy the footnote content from the Source Footnotes meta box into the new footnote field.
 
 This is an interim solution. Proper footnote import will be revisited once the Gutenberg footnotes store initialisation lifecycle is fully understood.
+
+---
+
+## Troubleshooting
+
+### Newly added language returns 404 or is not routed
+
+After adding a new language (by dropping a `.mo` file into `languages/` or installing a WP language pack), the rewrite rules that match URL prefixes like `/it/` or `/pt/` are not yet registered in WordPress's rewrite cache.
+
+**Fix: flush the rewrite rules by re-saving Permalink settings.**
+
+1. Go to **Settings → Permalinks** in the WordPress admin.
+2. Click **Save Changes** — no need to change anything, just save.
+
+This forces WordPress to rebuild and cache the rewrite rule set, which now includes the new language prefix. Without this step, requests to `/it/your-page/` will 404 even though everything else is configured correctly.
+
+> This is a one-time step each time a language is added or removed. It is not needed for day-to-day content editing.
 
 ---
 

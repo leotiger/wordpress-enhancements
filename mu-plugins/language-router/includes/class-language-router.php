@@ -177,8 +177,16 @@ class Language_Router {
 	public function languages(): array {
 		if ( $this->cached_languages !== null ) return $this->cached_languages;
 
+		// Start with languages WordPress core knows about.
 		$locales   = get_available_languages();
 		$locales[] = get_locale();
+
+		// Also auto-discover languages from the plugin's own .mo files so that
+		// adding e.g. vikbooking-it_IT.mo is sufficient — no WP core language
+		// pack and no manual filter needed.
+		foreach ( $this->discover_plugin_locales() as $locale ) {
+			$locales[] = $locale;
+		}
 
 		$langs = [];
 		foreach ( $locales as $locale ) {
@@ -188,6 +196,34 @@ class Language_Router {
 		$langs[] = $this->source_language();
 
 		return $this->cached_languages = apply_filters( 'my_languages_list', array_values( array_unique( $langs ) ) );
+	}
+
+	/**
+	 * Scan the plugin's languages/ directory and return every unique locale code
+	 * found across all bundled .mo files.
+	 *
+	 * Files follow the standard WordPress naming convention:
+	 *   {textdomain}-{locale}.mo
+	 *
+	 * The locale suffix is either a bare two-letter code ("ca", "ja") or a
+	 * language_COUNTRY pair ("it_IT", "pt_PT", "de_DE"). Both forms are matched
+	 * by the regex so any plugin's translation file is accepted automatically —
+	 * no anchor on a specific text domain is needed.
+	 *
+	 * @return string[]  e.g. ['it_IT', 'pt_PT', 'de_DE', 'ca', …]
+	 */
+	private function discover_plugin_locales(): array {
+		$files   = glob( WPMU_PLUGIN_DIR . '/language-router/languages/*.mo' ) ?: [];
+		$locales = [];
+
+		foreach ( $files as $file ) {
+			// Match the locale at the end: either "xx_XX" or bare "xx".
+			if ( preg_match( '/-([a-z]{2}(?:_[A-Z]{2})?)\.mo$/i', $file, $m ) ) {
+				$locales[] = $m[1];
+			}
+		}
+
+		return array_unique( $locales );
 	}
 
 	// =========================================================
@@ -281,21 +317,42 @@ class Language_Router {
 			return $cache[$lang] = $force[$lang];
 		}
 
-		// 2. Installed languages
-		foreach ( get_available_languages() as $locale ) {
+		// 2. Installed WP language packs + plugin-bundled locales
+		$known_locales = array_merge( get_available_languages(), $this->discover_plugin_locales() );
+		foreach ( $known_locales as $locale ) {
 			$locale_l = strtolower( $locale );
 			if ( $locale_l === $lang || strpos( $locale_l, $lang . '_' ) === 0 ) {
 				return $cache[$lang] = $locale;
 			}
 		}
 
-		// 3. Fallback map
+		// 3. Fallback map — extend via the filter for custom or regional variants.
+		//    'pt' defaults to pt_PT (Portugal); override with 'pt' => 'pt_BR' if needed.
 		$fallback_map = apply_filters( 'my_lang_fallback_map', [
 			'ca' => 'ca',
 			'en' => 'en_US',
 			'es' => 'es_ES',
 			'de' => 'de_DE',
 			'fr' => 'fr_FR',
+			'it' => 'it_IT',
+			'pt' => 'pt_PT',
+			'nl' => 'nl_NL',
+			'pl' => 'pl_PL',
+			'ru' => 'ru_RU',
+			'sv' => 'sv_SE',
+			'da' => 'da_DK',
+			'nb' => 'nb_NO',
+			'ro' => 'ro_RO',
+			'hu' => 'hu_HU',
+			'cs' => 'cs_CZ',
+			'tr' => 'tr_TR',
+			'el' => 'el',
+			'ja' => 'ja',
+			'zh' => 'zh_CN',
+			'ko' => 'ko_KR',
+			'ar' => 'ar',
+			'he' => 'he_IL',
+			'id' => 'id_ID',
 		] );
 
 		if ( isset( $fallback_map[$lang] ) ) {
@@ -432,16 +489,20 @@ class Language_Router {
 
 		if ( $locale === 'ca_ES' ) $locale = 'ca';
 
-		// Vik Booking
-		$mofile = WPMU_PLUGIN_DIR . '/language-router/languages/vikbooking-' . $locale . '.mo';
-		if ( file_exists( $mofile ) ) {
-			load_textdomain( 'vikbooking', $mofile );
-		}
+		// Auto-load any {textdomain}-{locale}.mo file found in the languages/ directory.
+		// To override a plugin's strings: drop a file named {textdomain}-{locale}.mo here.
+		// No code changes needed when adding new plugins or languages.
+		$dir    = WPMU_PLUGIN_DIR . '/language-router/languages/';
+		$suffix = '-' . $locale . '.mo';
 
-		// Complianz GDPR
-		$mofile = WPMU_PLUGIN_DIR . '/language-router/languages/complianz-gdpr-' . $locale . '.mo';
-		if ( file_exists( $mofile ) ) {
-			load_textdomain( 'complianz-gdpr', $mofile );
+		foreach ( glob( $dir . '*' . $suffix ) ?: [] as $mofile ) {
+			// Strip '-{locale}' from the end of the basename to get the text domain.
+			// e.g. "vikbooking-it_IT" with locale "it_IT" → "vikbooking"
+			//      "complianz-gdpr-ca" with locale "ca"    → "complianz-gdpr"
+			$textdomain = substr( basename( $mofile, '.mo' ), 0, -(strlen( $locale ) + 1) );
+			if ( $textdomain !== '' ) {
+				load_textdomain( $textdomain, $mofile );
+			}
 		}
 	}
 
