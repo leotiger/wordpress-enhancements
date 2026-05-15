@@ -120,7 +120,18 @@ class Translation implements FeatureInterface {
         // ── Cache check ───────────────────────────────────────────────────────
         // Cache key is per-language so multiple translations of the same post
         // can coexist (e.g. _wpenhance_cache_translation_fr, …_ca, …_de).
-        $footnotes_raw = (string) get_post_meta($post_id, '_footnotes', true);
+        //
+        // Prefer the footnotes value forwarded by the JS client from the live
+        // Gutenberg meta store — this captures unsaved footnotes that have not
+        // yet been written to the database.  Fall back to get_post_meta() for
+        // classic-editor requests or when the param is absent / invalid JSON.
+        $param_footnotes = isset($params['footnotes_meta']) && is_string($params['footnotes_meta'])
+            ? wp_unslash($params['footnotes_meta'])
+            : '';
+
+        $footnotes_raw = ($param_footnotes !== '' && json_decode($param_footnotes) !== null)
+            ? $param_footnotes
+            : (string) get_post_meta($post_id, '_footnotes', true);
         $cache_key     = $this->get_key() . '_' . $target_language;
         $hash          = CacheStore::hash([$post->post_title, $post->post_content, $footnotes_raw, $target_language]);
         $cached = empty($params['force_refresh'])

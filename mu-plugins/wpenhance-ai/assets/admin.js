@@ -70,6 +70,13 @@ document.addEventListener('click', async (event) => {
         const payload = { content: textarea.value };
         if (translatedTitle) payload.title = translatedTitle;
 
+        // Apply footnotes through the Gutenberg store so they are part of the
+        // same save cycle as the content.  Writing directly to the DB via a
+        // REST call would be overwritten the moment the user hits Save, because
+        // Gutenberg flushes its own meta.footnotes back to _footnotes on save.
+        const footnotesJson = result?.dataset.footnotes || '';
+        if (footnotesJson) payload.meta = { footnotes: footnotesJson };
+
         window.parent.wp.data
             .dispatch('core/editor')
             .editPost(payload);
@@ -83,32 +90,6 @@ document.addEventListener('click', async (event) => {
         if (translatedTitle) {
             const classicTitle = document.querySelector('#title');
             if (classicTitle) classicTitle.value = translatedTitle;
-        }
-    }
-
-    // If footnotes were translated, persist them via the REST endpoint.
-    const footnotesJson = result?.dataset.footnotes || '';
-    const postId        = panel.querySelector('.wpenhance-ai-action')?.dataset.postId;
-
-    if (footnotesJson && postId) {
-
-        try {
-
-            await fetch(
-                `${WPEnhanceAI.restUrl}/footnotes/${postId}`,
-                {
-                    method:  'POST',
-                    headers: {
-                        'X-WP-Nonce':   WPEnhanceAI.nonce,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ footnotes: footnotesJson }),
-                }
-            );
-
-        } catch (_) {
-            // Content was already applied — footnote failure is non-fatal.
-            console.warn('WPEnhance AI: could not save translated footnotes.');
         }
     }
 
@@ -183,12 +164,6 @@ async function runFeature(featureKey, postId, params, resultEl) {
         }
 
         if (data.type === 'content') {
-
-            // Strip <br> tags the model adds between blocks — they break the
-            // Gutenberg block parser.  Done here so it covers fresh results,
-            // cached results served before the PHP-side strip was in place,
-            // and any edge case where the PHP layer is bypassed.
-            data.output = data.output.replace(/<br\s*\/?>/gi, '');
 
             renderContentResult(resultEl, data, featureKey, postId);
 
@@ -320,6 +295,10 @@ function renderRefreshRow(featureKey, postId) {
 /**
  * Collect the values of any extra UI fields belonging to a feature.
  * Handles both <select> and <textarea> input fields.
+ *
+ * For the translation feature, also reads the current _footnotes value
+ * from the Gutenberg editor meta store (window.parent.wp.data) so that
+ * unsaved footnotes are captured even before the post is saved to the DB.
  */
 function collectParams(panel, featureKey) {
 
@@ -333,6 +312,21 @@ function collectParams(panel, featureKey) {
         .forEach((field) => {
             params[field.dataset.field] = field.value;
         });
+
+    // Pull footnotes from the live editor meta store so translation always
+    // works against the current in-editor state, not the last-saved DB value.
+    // Note: Gutenberg exposes the meta key as "footnotes" (no leading underscore)
+    // via getEditedPostAttribute('meta'), even though the DB key is "_footnotes".
+    if (featureKey === 'translation' && window.parent.wp?.data) {
+
+        const meta = window.parent.wp.data
+            .select('core/editor')
+            ?.getEditedPostAttribute('meta');
+
+        if (meta && typeof meta.footnotes === 'string' && meta.footnotes !== '') {
+            params.footnotes_meta = meta.footnotes;
+        }
+    }
 
     return params;
 }

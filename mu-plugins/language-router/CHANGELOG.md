@@ -5,6 +5,55 @@ Earlier history is preserved in the root `CHANGELOG.md` of the procedural versio
 
 ---
 
+## [1.2.2] - 2026-05-15
+
+### Fixed
+
+- **Root cause of footnotes being lost on import** — WordPress core (6.3+) writes
+  `footnotes = ''` to `wp_postmeta` on every block editor REST API save for posts that
+  have no footnotes in the editor's current in-memory state. This silently overwrote real
+  footnote data on source posts whenever they were opened and re-saved for any reason.
+  The next import would then read `''` from the source, treat it as "no footnotes", and
+  call `delete_post_meta` on the target instead of copying. Fixed by adding a
+  `update_post_metadata` filter (`protectfootnotes_meta`) that blocks an empty value from
+  overwriting a non-empty `footnotes` in the DB, while still allowing genuine
+  "user removed all footnotes" saves when the DB value is already empty.
+
+- **Stale empty `footnotes` rows cleaned up** — `purge_emptyfootnotes()` is run as a
+  one-time migration on the 1.2.2 version bump. It deletes all `footnotes` postmeta rows
+  where the value is `''` or `'[]'`, removing the accumulated noise from prior WP core saves.
+
+- **Import guard hardened for `'[]'`** — The empty-footnotes check in
+  `ajax_import_translation()` now also rejects `'[]'` (an empty JSON array), which some
+  WordPress configurations use instead of an empty string for posts with no footnotes.
+
+- **Revision fallback for lost footnote data** — `getfootnotes_with_revision_fallback()`
+  is used during import instead of a bare `get_post_meta`. If the source post's `footnotes`
+  is empty (cleared by prior WP core saves), the method scans up to 25 recent revisions
+  (most recent first) for a non-empty value. WordPress 6.4+ stores `footnotes` in
+  revisions via `revisions_enabled`, so the last good value is typically recoverable even
+  after the main meta was wiped.
+
+- **AJAX import now surfaces errors** — The fetch callback in `print_admin_js()` previously
+  called `location.reload()` regardless of the server response, silently swallowing
+  `wp_send_json_error` replies. It now parses the JSON response, shows an `alert` on
+  failure, and only reloads on success.
+
+---
+
+## [1.2.1] - 2026-05-15
+
+### Fixed
+
+- **Footnotes not copied on import** — `ajax_import_translation()` now explicitly transfers
+  the `footnotes` post meta from source to target after calling `wp_update_post()`.
+  WordPress stores footnotes outside `post_content` as a dedicated meta key (`footnotes`,
+  introduced in WP 6.3); the previous implementation only copied post fields, so footnotes
+  were silently dropped. If the source has no footnotes, any stale `footnotes` value on
+  the target is deleted to prevent leftover data.
+
+---
+
 ## [1.2.0] - 2026-05-14
 
 ### Technical Notes

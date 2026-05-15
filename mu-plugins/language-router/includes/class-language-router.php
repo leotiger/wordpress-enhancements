@@ -32,7 +32,8 @@ class Language_Router {
 	// CONSTANTS / VERSION
 	// =========================================================
 
-	const ROUTER_VERSION = '1.1';
+	const ROUTER_VERSION    = '1.2.2';
+	const FOOTNOTES_META_KEY = 'footnotes';
 
 	// =========================================================
 	// INSTANCE CACHES  (avoids repeated filesystem + filter calls)
@@ -50,13 +51,7 @@ class Language_Router {
 	 */
 	private function define_lang_constant(): void {
 		if ( defined( 'MY_LANG' ) ) return;
-
-		$detected = $this->detect_lang();
-		$value    = $this->is_valid_lang( $detected )
-			? $this->detect_lang_safe()
-			: $this->source_language();
-
-		define( 'MY_LANG', $value );
+		define( 'MY_LANG', $this->detect_lang_safe() );
 	}
 
 	private function register_hooks(): void {
@@ -164,6 +159,11 @@ class Language_Router {
 
 		// DB version / index
 		add_action( 'plugins_loaded', [ $this, 'check_db_version' ], 1 );
+
+		// Protect footnotes from being silently cleared by block editor REST saves.
+		// WP core writes an empty value on every save for posts without footnotes;
+		// this filter prevents that empty write from overwriting real data.
+		add_filter( 'update_post_metadata', [ $this, 'protect_footnotes_meta' ], 10, 5 );
 
 		// Debug on wp
 		add_action( 'wp',   [ $this, 'debug_request_context' ] );
@@ -1139,7 +1139,6 @@ class Language_Router {
 		check_ajax_referer( 'my_import_translation_nonce', 'nonce' );
 
 		$target_id = (int) $_POST['post_id'];
-		$lang      = sanitize_text_field( $_POST['lang'] );
 
 		if ( ! current_user_can( 'edit_post', $target_id ) ) {
 			wp_send_json_error( 'Permission denied' );
@@ -1166,6 +1165,16 @@ class Language_Router {
 			'post_title'   => $source->post_title,
 			'post_content' => $content,
 		] );
+
+		// WordPress stores footnotes as post meta since WP 6.3.
+		// Copy them explicitly because wp_update_post() does not touch post meta.
+		$footnotes = get_post_meta( $source_id, self::FOOTNOTES_META_KEY, true );
+
+		if ( $footnotes !== '' && $footnotes !== false && $footnotes !== '[]' ) {
+			update_post_meta( $target_id, self::FOOTNOTES_META_KEY, $footnotes );
+		} else {
+			delete_post_meta( $target_id, self::FOOTNOTES_META_KEY );
+		}
 
 		$this->set_lang( $target_id, $original_lang );
 
@@ -1360,9 +1369,9 @@ class Language_Router {
 		if ( ! in_array( $post_type, [ 'post', 'page' ] ) ) return;
 
 		$user_id = get_current_user_id();
-		$current = $_GET['my_lang_filter']
-			?? get_user_meta( $user_id, 'my_lang_filter', true )
-			?? '';
+		$current = ! empty( $_GET['my_lang_filter'] )
+			? sanitize_text_field( $_GET['my_lang_filter'] )
+			: ( get_user_meta( $user_id, 'my_lang_filter', true ) ?: '' );
 
 		echo '<select name="my_lang_filter">';
 		echo '<option value="">All languages</option>';
@@ -1567,7 +1576,6 @@ class Language_Router {
 				$text = $this->extract_block_text( $child );
 				if ( ! empty( trim( $text ) ) ) {
 					$content .= ' ' . $text;
-					if ( strlen( $content ) < 200 ) $content .= ' ' . $text;
 					if ( strlen( $content ) > 1000 ) break;
 				}
 			}
@@ -1587,6 +1595,47 @@ class Language_Router {
 		}
 
 		return $content;
+	}
+
+	// =========================================================
+	// FOOTNOTES PROTECTION
+	// =========================================================
+
+	/**
+	 * Block the block editor from overwriting a non-empty footnotes value with an
+	 * empty one. WP core (6.3+) sends an empty value on every REST API save for
+	 * posts that have no footnotes blocks in the editor's current data-store state.
+	 * This silently destroys real footnote data whenever an editor session loses
+	 * track of the meta (e.g. first load, partial hydration) and then saves.
+	 *
+	 * We allow the write only when:
+	 *  - the value is non-empty (genuine content), OR
+	 *  - the existing DB value is already empty / absent (no data to protect).
+	 *
+	 * Returning false from update_post_metadata short-circuits the update without
+	 * touching the DB, so the existing value is preserved.
+	 *
+	 * @param mixed  $check      null by default; non-null short-circuits the update.
+	 * @param int    $object_id  Post ID.
+	 * @param string $meta_key   Meta key being written.
+	 * @param mixed  $meta_value Incoming value.
+	 * @param mixed  $prev_value Previous value passed to update_post_meta (often '').
+	 * @return mixed
+	 */
+	public function protect_footnotes_meta( $check, int $object_id, string $meta_key, $meta_value, $prev_value ) {
+		if ( $meta_key !== self::FOOTNOTES_META_KEY ) return $check;
+
+		// Value has real content — let it through.
+		if ( $meta_value !== '' && $meta_value !== '[]' && $meta_value !== false ) return $check;
+
+		// Incoming value is empty. Check what is actually stored.
+		$existing = get_post_meta( $object_id, self::FOOTNOTES_META_KEY, true );
+		if ( $existing !== '' && $existing !== '[]' && $existing !== false ) {
+			// Real data exists — block the overwrite.
+			return false;
+		}
+
+		return $check;
 	}
 
 	// =========================================================
@@ -1621,9 +1670,34 @@ class Language_Router {
 
 		$ok = $this->ensure_lang_index();
 
+		// 1.2.2 — remove empty _footnotes rows left behind by WP core block editor saves.
+		// WP writes _footnotes = '' for every post saved without footnotes; those rows
+		// are noise that also caused the import to wrongly treat source posts as having
+		// no footnotes and then delete real footnote data on the target.
+		$this->purge_empty_footnotes();
+
 		if ( $ok !== false ) {
 			update_option( 'my_lang_router_version', self::ROUTER_VERSION );
 		}
+	}
+
+	/**
+	 * Delete all footnotes postmeta rows whose value is empty or an empty JSON array.
+	 * This is a one-time cleanup run during the 1.2.2 version upgrade.
+	 */
+	private function purge_empty_footnotes(): void {
+		global $wpdb;
+
+		$deleted = $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->postmeta}
+				 WHERE meta_key = %s
+				 AND (meta_value = '' OR meta_value = '[]')",
+				self::FOOTNOTES_META_KEY
+			)
+		);
+
+		$this->debug( 'Purged empty footnotes rows', [ 'deleted' => $deleted ] );
 	}
 
 	// =========================================================
@@ -1650,7 +1724,18 @@ document.addEventListener('click', function(e){
 			lang:lang,
 			nonce:'<?php echo esc_js( $nonce ); ?>'
 		})
-	}).then(()=>location.reload());
+	})
+	.then(r=>r.json())
+	.then(function(data){
+		if(!data.success){
+			alert('Import failed: ' + (data.data || 'unknown error'));
+			return;
+		}
+		location.reload();
+	})
+	.catch(function(err){
+		alert('Import request failed: ' + err);
+	});
 });
 
 document.addEventListener('change', function(e){

@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.0.4] — 2026-05-15
+
+### Fixed
+
+* **Unsaved footnotes ignored during translation** — `collectParams()` in
+  `admin.js` was reading `meta._footnotes` from the Gutenberg editor store, but
+  the block editor exposes the meta key as `footnotes` (no leading underscore)
+  via `getEditedPostAttribute('meta')`. The underscore prefix only exists in the
+  database (`_footnotes` post meta); Gutenberg strips it in the JS store.
+  As a result the live in-editor footnote state was never forwarded to the
+  translation request — the PHP fallback always read from the last-saved DB
+  value instead. Fixed by changing `meta._footnotes` → `meta.footnotes`.
+
+* **Translated footnotes overwritten on post save** — the "Apply to Editor"
+  button was persisting translated footnotes via a direct `POST /footnotes/{id}`
+  REST call that wrote to `_footnotes` post meta immediately. Because Gutenberg
+  was still holding the original (untranslated) `footnotes` value in its store,
+  clicking Save in the editor would flush the store back to the DB and silently
+  overwrite the translated footnotes. Fixed by passing footnotes through
+  `editPost({meta: {footnotes: …}})` alongside the content — the same Gutenberg
+  store path used for all other edits — and removing the now-redundant
+  `/footnotes` REST endpoint.
+
+* **Redundant client-side `<br>` stripping removed** — `admin.js` was
+  stripping `<br>` tags from the output as a fallback for old cached values
+  predating the PHP-side strip. Since `Translation.php` strips before writing
+  to the cache and `FeatureController::strip_br_from_output` guards against
+  re-injection by `wpautop` plugins, the JS layer was dead code. Removed.
+
+---
+
 ## [1.0.3] — 2026-05-14
 
 ### Fixed

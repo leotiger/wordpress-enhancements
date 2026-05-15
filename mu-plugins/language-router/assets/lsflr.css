@@ -41,7 +41,6 @@
 .lsflr-current {
     display: inline-flex;
     align-items: center;
-	vertical-align: center;
     gap: 0.35em;
 }
 
