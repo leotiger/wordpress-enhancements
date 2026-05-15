@@ -1,4 +1,4 @@
-# Language Router for WordPress — Class-based refactor (v1.2.0)
+# Language Router for WordPress — Class-based refactor (v1.3.2)
 
 A drop-in replacement for the procedural Language Router plugin, rewritten as two collaborating classes. All `my_*` wrapper functions are preserved so existing theme code keeps working without changes.
 
@@ -333,6 +333,30 @@ SEO plugin hreflang output is suppressed automatically when `my_hreflang_mode` i
 On first activation (and on version bump), `check_db_version()` creates a composite index on `wp_postmeta (meta_key, meta_value(10))` to speed up `_lang` queries across large sites.
 
 Translation lookups are wrapped in WordPress object cache. Caches are invalidated automatically on post save.
+
+---
+
+## Known limitations
+
+### Footnotes are not imported
+
+Gutenberg footnotes cannot be copied reliably from a source page to a translation page in the current version. The underlying reason is architectural: WordPress stores footnotes in two separate locations that must stay in sync — inline `<sup data-fn="UUID">` markers inside `post_content` and a JSON array in the `footnotes` postmeta. Those UUIDs are page-specific, and copying them verbatim causes the block editor's footnotes store to crash or display `*` instead of numbers. Remapping them on import has proven equally fragile because of the block editor's internal state initialisation timing.
+
+**What the import does instead:**
+
+- All footnote markup (`<!-- wp:footnotes /-->` block and inline `<sup data-fn="…">` markers) is stripped from the imported content, leaving clean prose.
+- The `footnotes` postmeta on the target page is reset to `[]` so the block editor starts from the same clean state as a freshly created page.
+- The source page's footnotes are displayed as a **read-only numbered list** in the **Source Footnotes** meta box on the target page's edit screen.
+
+**Workflow to recreate footnotes after import:**
+
+1. Import the translation as usual via the **Override** button in the Translations meta box.
+2. Open the imported page in the block editor.
+3. Refer to the **Source Footnotes** meta box (visible in the right-hand column or below the editor) for the original footnote texts.
+4. Place the cursor at each point in the text where a footnote belongs and add it through the block editor's standard footnote interface (`Insert → Footnote` or via the Format toolbar).
+5. Copy the footnote content from the Source Footnotes meta box into the new footnote field.
+
+This is an interim solution. Proper footnote import will be revisited once the Gutenberg footnotes store initialisation lifecycle is fully understood.
 
 ---
 

@@ -32,8 +32,7 @@ class Language_Router {
 	// CONSTANTS / VERSION
 	// =========================================================
 
-	const ROUTER_VERSION    = '1.2.2';
-	const FOOTNOTES_META_KEY = 'footnotes';
+	const ROUTER_VERSION = '1.3.2';
 
 	// =========================================================
 	// INSTANCE CACHES  (avoids repeated filesystem + filter calls)
@@ -113,6 +112,7 @@ class Language_Router {
 		add_action( 'add_meta_boxes', [ $this, 'add_language_meta_box' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_template_meta_box' ] );
 		add_action( 'add_meta_boxes', [ $this, 'add_translations_meta_box' ] );
+		add_action( 'add_meta_boxes', [ $this, 'add_source_footnotes_meta_box' ] );
 
 		// get_pages filter (parent selector in admin)
 		add_filter( 'get_pages', [ $this, 'filter_pages_by_lang' ], 10, 2 );
@@ -159,11 +159,6 @@ class Language_Router {
 
 		// DB version / index
 		add_action( 'plugins_loaded', [ $this, 'check_db_version' ], 1 );
-
-		// Protect footnotes from being silently cleared by block editor REST saves.
-		// WP core writes an empty value on every save for posts without footnotes;
-		// this filter prevents that empty write from overwriting real data.
-		add_filter( 'update_post_metadata', [ $this, 'protect_footnotes_meta' ], 10, 5 );
 
 		// Debug on wp
 		add_action( 'wp',   [ $this, 'debug_request_context' ] );
@@ -1160,21 +1155,30 @@ class Language_Router {
 		$blocks        = parse_blocks( $content );
 		$content       = serialize_blocks( $blocks );
 
+		// Strip all footnote markup from the imported content.
+		// Gutenberg footnotes are tightly coupled to post-specific UUIDs and
+		// internal block state — copying them verbatim breaks the block editor on
+		// the target page. The source footnotes are displayed in a read-only
+		// metabox on the target page so the translator can recreate them manually.
+		//
+		// 1. Remove the footnotes block comment.
+		$content = preg_replace( '/<!--\s*wp:footnotes\s*\/-->\n?/', '', $content );
+		// 2. Remove inline footnote markers (<sup data-fn="…">…</sup>), leaving
+		//    the surrounding prose intact.
+		$content = preg_replace( '/<sup[^>]+data-fn="[^"]*"[^>]*>.*?<\/sup>/s', '', $content );
+
 		wp_update_post( [
 			'ID'           => $target_id,
 			'post_title'   => $source->post_title,
 			'post_content' => $content,
 		] );
 
-		// WordPress stores footnotes as post meta since WP 6.3.
-		// Copy them explicitly because wp_update_post() does not touch post meta.
-		$footnotes = get_post_meta( $source_id, self::FOOTNOTES_META_KEY, true );
-
-		if ( $footnotes !== '' && $footnotes !== false && $footnotes !== '[]' ) {
-			update_post_meta( $target_id, self::FOOTNOTES_META_KEY, $footnotes );
-		} else {
-			delete_post_meta( $target_id, self::FOOTNOTES_META_KEY );
-		}
+		// Reset footnotes meta to an empty array so the block editor starts from
+		// a clean state identical to a fresh page. Without this, stale UUID data
+		// from the target's previous content remains in the meta, causing the
+		// editor's footnotes store to initialise in an inconsistent state
+		// (meta has UUIDs, content has none) which crashes the footnotes block.
+		update_post_meta( $target_id, 'footnotes', '[]' );
 
 		$this->set_lang( $target_id, $original_lang );
 
@@ -1288,6 +1292,69 @@ class Language_Router {
 
 			echo '</p>';
 		}
+	}
+
+	// =========================================================
+	// SOURCE FOOTNOTES META BOX
+	// =========================================================
+
+	public function add_source_footnotes_meta_box(): void {
+		add_meta_box(
+			'my_source_footnotes',
+			'Source Footnotes',
+			[ $this, 'render_source_footnotes_meta_box' ],
+			null,
+			'normal',
+			'default'
+		);
+	}
+
+	/**
+	 * Show the source page's footnotes as a read-only reference on translation pages.
+	 *
+	 * Footnotes are stripped from imported content (Gutenberg's UUID-based system
+	 * makes cross-page copying fragile). This metabox lets translators see what
+	 * footnotes the source has so they can recreate them manually via the block editor.
+	 */
+	public function render_source_footnotes_meta_box( $post ): void {
+		$lang = $this->get_lang( $post->ID );
+
+		// Only relevant on non-source translation pages.
+		if ( $lang === $this->source_language() ) {
+			echo '<p style="color:#888;">' . esc_html__( 'This is the source page. Footnotes are edited directly in the block editor.' ) . '</p>';
+			return;
+		}
+
+		$translations = $this->get_translations( $post->ID );
+		$source_id    = $translations[ $this->source_language() ] ?? 0;
+
+		if ( ! $source_id ) {
+			echo '<p style="color:#888;">' . esc_html__( 'No source page linked yet.' ) . '</p>';
+			return;
+		}
+
+		$raw = get_post_meta( $source_id, 'footnotes', true );
+
+		if ( empty( $raw ) || $raw === '[]' ) {
+			echo '<p style="color:#888;">' . esc_html__( 'The source page has no footnotes.' ) . '</p>';
+			return;
+		}
+
+		$footnotes = json_decode( $raw, true );
+
+		if ( ! is_array( $footnotes ) || empty( $footnotes ) ) {
+			echo '<p style="color:#888;">' . esc_html__( 'The source page has no footnotes.' ) . '</p>';
+			return;
+		}
+
+		echo '<p style="color:#888;font-style:italic;">'
+			. esc_html__( 'These footnotes come from the source page and are shown here for reference only. Add them to this page using the block editor.' )
+			. '</p>';
+		echo '<ol style="margin-left:1.5em;">';
+		foreach ( $footnotes as $fn ) {
+			echo '<li style="margin-bottom:.5em;">' . wp_kses_post( $fn['content'] ?? '' ) . '</li>';
+		}
+		echo '</ol>';
 	}
 
 	// =========================================================
@@ -1597,46 +1664,6 @@ class Language_Router {
 		return $content;
 	}
 
-	// =========================================================
-	// FOOTNOTES PROTECTION
-	// =========================================================
-
-	/**
-	 * Block the block editor from overwriting a non-empty footnotes value with an
-	 * empty one. WP core (6.3+) sends an empty value on every REST API save for
-	 * posts that have no footnotes blocks in the editor's current data-store state.
-	 * This silently destroys real footnote data whenever an editor session loses
-	 * track of the meta (e.g. first load, partial hydration) and then saves.
-	 *
-	 * We allow the write only when:
-	 *  - the value is non-empty (genuine content), OR
-	 *  - the existing DB value is already empty / absent (no data to protect).
-	 *
-	 * Returning false from update_post_metadata short-circuits the update without
-	 * touching the DB, so the existing value is preserved.
-	 *
-	 * @param mixed  $check      null by default; non-null short-circuits the update.
-	 * @param int    $object_id  Post ID.
-	 * @param string $meta_key   Meta key being written.
-	 * @param mixed  $meta_value Incoming value.
-	 * @param mixed  $prev_value Previous value passed to update_post_meta (often '').
-	 * @return mixed
-	 */
-	public function protect_footnotes_meta( $check, int $object_id, string $meta_key, $meta_value, $prev_value ) {
-		if ( $meta_key !== self::FOOTNOTES_META_KEY ) return $check;
-
-		// Value has real content — let it through.
-		if ( $meta_value !== '' && $meta_value !== '[]' && $meta_value !== false ) return $check;
-
-		// Incoming value is empty. Check what is actually stored.
-		$existing = get_post_meta( $object_id, self::FOOTNOTES_META_KEY, true );
-		if ( $existing !== '' && $existing !== '[]' && $existing !== false ) {
-			// Real data exists — block the overwrite.
-			return false;
-		}
-
-		return $check;
-	}
 
 	// =========================================================
 	// PERFORMANCE
@@ -1670,34 +1697,9 @@ class Language_Router {
 
 		$ok = $this->ensure_lang_index();
 
-		// 1.2.2 — remove empty _footnotes rows left behind by WP core block editor saves.
-		// WP writes _footnotes = '' for every post saved without footnotes; those rows
-		// are noise that also caused the import to wrongly treat source posts as having
-		// no footnotes and then delete real footnote data on the target.
-		$this->purge_empty_footnotes();
-
 		if ( $ok !== false ) {
 			update_option( 'my_lang_router_version', self::ROUTER_VERSION );
 		}
-	}
-
-	/**
-	 * Delete all footnotes postmeta rows whose value is empty or an empty JSON array.
-	 * This is a one-time cleanup run during the 1.2.2 version upgrade.
-	 */
-	private function purge_empty_footnotes(): void {
-		global $wpdb;
-
-		$deleted = $wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$wpdb->postmeta}
-				 WHERE meta_key = %s
-				 AND (meta_value = '' OR meta_value = '[]')",
-				self::FOOTNOTES_META_KEY
-			)
-		);
-
-		$this->debug( 'Purged empty footnotes rows', [ 'deleted' => $deleted ] );
 	}
 
 	// =========================================================
