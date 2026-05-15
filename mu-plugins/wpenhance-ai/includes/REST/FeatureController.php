@@ -3,6 +3,7 @@
 namespace WPEnhance\AI\REST;
 
 use WPEnhance\AI\Features\Registry;
+use WPEnhance\AI\Features\Translation;
 
 defined('ABSPATH') || exit;
 
@@ -42,6 +43,21 @@ class FeatureController {
             ]
         );
 
+        // ── Toolbar chunk-translation endpoint ────────────────────────────────
+        // Translates a free-form text snippet without requiring a post ID.
+        // Used by the Admin Toolbar translate popover — completely independent
+        // from the editor meta box translation feature.
+        register_rest_route(
+            'wpenhance-ai/v1',
+            '/translate-chunk',
+            [
+                'methods'             => 'POST',
+                'callback'            => [self::class, 'run_translate_chunk'],
+                'permission_callback' => function () {
+                    return current_user_can('edit_posts');
+                },
+            ]
+        );
     }
 
     public static function run(
@@ -75,6 +91,48 @@ class FeatureController {
 
         return rest_ensure_response(
             $feature->run($post_id, $params)
+        );
+    }
+
+    /**
+     * Translate a free-form text chunk via the Admin Toolbar popover.
+     *
+     * Accepts:
+     *   - target_language  (string)  ISO language code, e.g. "es"
+     *   - chunk_text       (string)  The text to translate
+     *
+     * @param  \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public static function run_translate_chunk(\WP_REST_Request $request) {
+
+        $params          = (array) ($request->get_json_params() ?? []);
+        $target_language = sanitize_text_field($params['target_language'] ?? 'en');
+        $languages       = Translation::get_languages();
+
+        if (!array_key_exists($target_language, $languages)) {
+            return new \WP_Error(
+                'invalid_language',
+                'Invalid target language.',
+                ['status' => 400]
+            );
+        }
+
+        $language_name = $languages[$target_language];
+
+        /** @var Translation $translation */
+        $translation = Registry::get('translation');
+
+        if (!$translation) {
+            return new \WP_Error(
+                'feature_unavailable',
+                'Translation feature is not registered.',
+                ['status' => 500]
+            );
+        }
+
+        return rest_ensure_response(
+            $translation->run_chunk($language_name, $params)
         );
     }
 

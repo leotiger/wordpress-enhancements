@@ -20,7 +20,7 @@ defined('ABSPATH') || exit;
 class Translation implements FeatureInterface {
 
     /** @var array<string, string> Supported target languages. */
-    private const LANGUAGES = [
+    public const LANGUAGES = [
         'en' => 'English',
         'es' => 'Spanish',
         'de' => 'German',
@@ -35,6 +35,17 @@ class Translation implements FeatureInterface {
         'ja' => 'Japanese',
         'ar' => 'Arabic',
     ];
+
+    /**
+     * Return the supported languages map for use by external callers
+     * (e.g. the Admin Toolbar translate popover).
+     *
+     * @return array<string, string>
+     */
+    public static function get_languages(): array {
+
+        return self::LANGUAGES;
+    }
 
     public function get_key(): string {
 
@@ -396,7 +407,7 @@ class Translation implements FeatureInterface {
      * @param  array  $params         Request parameters; chunk_text is required.
      * @return array
      */
-    private function run_chunk(string $language_name, array $params): array {
+    public function run_chunk(string $language_name, array $params): array {
 
         $chunk_text = trim(wp_unslash($params['chunk_text'] ?? ''));
 

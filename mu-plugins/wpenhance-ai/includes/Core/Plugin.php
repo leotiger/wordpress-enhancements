@@ -2,6 +2,7 @@
 
 namespace WPEnhance\AI\Core;
 
+use WPEnhance\AI\Admin\AdminToolbar;
 use WPEnhance\AI\Admin\MetaBox;
 use WPEnhance\AI\Admin\SettingsPage;
 use WPEnhance\AI\Features\Registry;
@@ -22,6 +23,7 @@ class Plugin {
 
         MetaBox::init();
         SettingsPage::init();
+        AdminToolbar::init();
 
         FeatureController::init();
     }
