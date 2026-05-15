@@ -1,5 +1,39 @@
 # Changelog
 
+## [1.0.6] — 2026-05-15
+
+### Added
+
+* **Configurable model endpoints** — a new **Models** section in Settings → WPEnhance AI
+  lets administrators override the AI model string for each provider and tier without editing
+  any code. Fields are organised in a table: one row per provider (Anthropic, OpenAI, Gemini),
+  one column per tier (Light and Quality). Leaving a field blank falls back to the built-in
+  default, which is displayed as placeholder text so it is always visible. An "overridden"
+  badge appears next to any field that carries a custom value. Saving an empty value resets
+  a model to the built-in default. Only the active provider's models are used at runtime —
+  the others can be pre-configured before switching.
+
+* **Two-tier model abstraction** — features no longer reference model strings directly.
+  `Config::model(string $tier)` resolves the correct string at runtime: it reads the stored
+  option `wpenhance_ai_model_{provider}_{tier}` for the active provider, and falls back to
+  the hard-coded defaults in `Config::MODEL_DEFAULTS`. Two helpers are also exposed:
+  `Config::default_model(string $provider, string $tier)` (used by the settings page to
+  populate placeholders) and `Config::all_model_defaults()` (returns the full defaults map).
+
+### Changed
+
+* **All four features wired to `Config::model()`** — `Translation` and `ContentGenerator`
+  now call `Config::model('quality')`; `MetaDescription` and `ExcerptGenerator` call
+  `Config::model('light')`. When a new Sonnet or Haiku version ships, updating the Quality
+  or Light field in settings is all that is needed — no code change, no deployment.
+* **`ProviderFactory` fallback updated** — the no-config path (rarely hit) now calls
+  `Config::model('light')` instead of reading from a private `DEFAULT_MODELS` constant,
+  keeping the single source of truth in `Config`.
+* `Config.php` now imports `WPEnhance\AI\Core\Config` — all four feature files gained this
+  `use` statement.
+
+---
+
 ## [1.0.5] — 2026-05-15
 
 ### Added

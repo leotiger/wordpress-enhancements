@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WPEnhance AI
  * Description: AI assistance framework for WordPress enhancements.
- * Version: 1.0.5
+ * Version: 1.0.6
  */
 
 defined('ABSPATH') || exit;

@@ -3,6 +3,7 @@
 namespace WPEnhance\AI\Admin;
 
 use WPEnhance\AI\Core\KeyStore;
+use WPEnhance\AI\Core\Config;
 
 defined('ABSPATH') || exit;
 
@@ -10,8 +11,9 @@ defined('ABSPATH') || exit;
  * Settings → WPEnhance AI
  *
  * Provides a standard WordPress settings page where administrators can:
- *   - Choose the active AI provider (Anthropic / OpenAI)
+ *   - Choose the active AI provider (Anthropic / OpenAI / Gemini)
  *   - Enter and store API keys (AES-256 encrypted via KeyStore)
+ *   - Override the model string for the Light and Quality tiers of each provider
  *   - See where each key is currently sourced from
  *   - Remove a stored database key
  *
@@ -19,6 +21,10 @@ defined('ABSPATH') || exit;
  * If a key is already configured via an env var or a wp-config.php constant,
  * that source takes lower priority than the database — but it is shown to
  * the administrator so they know a fallback is active.
+ *
+ * Model overrides are stored as plain text option values under
+ * wpenhance_ai_model_{provider}_{tier}.  Leaving a field blank resets it to
+ * the built-in default (shown as placeholder text).
  */
 class SettingsPage {
 
@@ -34,11 +40,27 @@ class SettingsPage {
         'gemini'    => 'Google (Gemini)',
     ];
 
+    /**
+     * Model tiers: slug → label and description shown in the settings table.
+     *
+     * @var array<string, array{label: string, used_by: string}>
+     */
+    private const TIERS = [
+        'light' => [
+            'label'   => 'Light',
+            'used_by' => 'Meta Description, Excerpt Generator',
+        ],
+        'quality' => [
+            'label'   => 'Quality',
+            'used_by' => 'Translation, Content Generator',
+        ],
+    ];
+
     // ── Initialisation ────────────────────────────────────────────────────────
 
     public static function init(): void {
 
-        add_action('admin_menu',                   [self::class, 'register_menu']);
+        add_action('admin_menu',                    [self::class, 'register_menu']);
         add_action('admin_post_' . self::PAGE_SLUG, [self::class, 'handle_save']);
     }
 
@@ -92,6 +114,23 @@ class SettingsPage {
             // If the field was left blank, the existing key is preserved.
         }
 
+        // ── Model overrides ───────────────────────────────────────────────────
+        // Store whatever the admin submitted (even empty string).
+        // Config::model() treats an empty stored value as "use built-in default",
+        // so clearing a field in the form is how you reset to the default.
+        foreach (array_keys(self::PROVIDERS) as $slug) {
+            foreach (array_keys(self::TIERS) as $tier) {
+
+                $option_key  = "wpenhance_ai_model_{$slug}_{$tier}";
+                $model_value = sanitize_text_field(
+                    trim($_POST[$option_key] ?? '')
+                );
+
+                // Allow saving an empty string to reset to the built-in default.
+                update_option($option_key, $model_value, false);
+            }
+        }
+
         wp_safe_redirect(
             add_query_arg(
                 'wpenhance_saved',
@@ -110,7 +149,7 @@ class SettingsPage {
             return;
         }
 
-        $saved_provider = (string) get_option(self::OPT_PROVIDER, '');
+        $saved_provider  = (string) get_option(self::OPT_PROVIDER, '');
         $active_provider = $saved_provider !== ''
             ? $saved_provider
             : (defined('WPENHANCE_AI_PROVIDER') ? WPENHANCE_AI_PROVIDER : 'anthropic');
@@ -167,7 +206,6 @@ class SettingsPage {
                                 <p class="description">
                                     <?php
                                     printf(
-                                        /* translators: %s: constant name */
                                         esc_html__(
                                             'Currently inherited from the %s constant. ' .
                                             'Selecting a value here will override it.'
@@ -180,6 +218,95 @@ class SettingsPage {
                         </td>
                     </tr>
                 </table>
+
+                <!-- ── Models ────────────────────────────────────────────── -->
+                <h2><?php esc_html_e('Models'); ?></h2>
+
+                <p>
+                    <?php
+                    esc_html_e(
+                        'Features are grouped into two tiers. ' .
+                        'Enter the exact model identifier for each tier and provider. ' .
+                        'Leave a field blank to use the built-in default (shown as placeholder). ' .
+                        'Only the active provider\'s models are called at runtime — ' .
+                        'configure the others in advance if you plan to switch.'
+                    );
+                    ?>
+                </p>
+
+                <table class="form-table wpenhance-ai-models-table" role="presentation">
+
+                    <thead>
+                        <tr>
+                            <th><?php esc_html_e('Provider'); ?></th>
+                            <?php foreach (self::TIERS as $tier_slug => $tier): ?>
+                                <th>
+                                    <?php echo esc_html($tier['label']); ?>
+                                    <span class="wpenhance-ai-tier-used-by">
+                                        <?php echo esc_html($tier['used_by']); ?>
+                                    </span>
+                                </th>
+                            <?php endforeach; ?>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    <?php foreach (self::PROVIDERS as $slug => $label): ?>
+
+                        <?php $is_active = ($slug === $active_provider); ?>
+
+                        <tr class="<?php echo $is_active ? 'wpenhance-ai-active-provider-row' : ''; ?>">
+                            <th scope="row">
+                                <?php echo esc_html($label); ?>
+                                <?php if ($is_active): ?>
+                                    <span class="wpenhance-ai-active-badge">
+                                        <?php esc_html_e('active'); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </th>
+
+                            <?php foreach (self::TIERS as $tier_slug => $tier): ?>
+
+                                <?php
+                                $option_key    = "wpenhance_ai_model_{$slug}_{$tier_slug}";
+                                $stored_model  = (string) get_option($option_key, '');
+                                $default_model = Config::default_model($slug, $tier_slug);
+                                $input_id      = "wpenhance_ai_model_{$slug}_{$tier_slug}";
+                                ?>
+
+                                <td>
+                                    <input
+                                        type="text"
+                                        id="<?php echo esc_attr($input_id); ?>"
+                                        name="<?php echo esc_attr($option_key); ?>"
+                                        class="regular-text wpenhance-ai-model-input"
+                                        value="<?php echo esc_attr($stored_model); ?>"
+                                        placeholder="<?php echo esc_attr($default_model); ?>"
+                                        spellcheck="false"
+                                        autocomplete="off"
+                                    >
+                                    <?php if ($stored_model !== ''): ?>
+                                        <span class="wpenhance-ai-model-override-badge">
+                                            <?php esc_html_e('overridden'); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+
+                            <?php endforeach; ?>
+                        </tr>
+
+                    <?php endforeach; ?>
+                    </tbody>
+
+                </table>
+
+                <p class="description">
+                    <?php
+                    esc_html_e(
+                        'Tip: to reset a model to the built-in default, clear the field and save.'
+                    );
+                    ?>
+                </p>
 
                 <!-- ── API Keys ──────────────────────────────────────────── -->
                 <h2><?php esc_html_e('API Keys'); ?></h2>
@@ -315,6 +442,7 @@ define( 'OPENAI_API_KEY',    'sk-…' );</pre>
         </div>
 
         <style>
+            /* ── Key status badges ─────────────────────────────────────── */
             .wpenhance-ai-key-badge {
                 display: inline-block;
                 margin-left: 8px;
@@ -328,6 +456,71 @@ define( 'OPENAI_API_KEY',    'sk-…' );</pre>
                 font-weight: 400;
                 color: #646970;
             }
+
+            /* ── Models table ──────────────────────────────────────────── */
+            .wpenhance-ai-models-table {
+                border-collapse: collapse;
+                width: 100%;
+                max-width: 860px;
+            }
+            .wpenhance-ai-models-table thead th {
+                padding: 8px 10px;
+                text-align: left;
+                font-weight: 600;
+                border-bottom: 2px solid #dcdcde;
+                vertical-align: bottom;
+            }
+            .wpenhance-ai-models-table tbody tr th,
+            .wpenhance-ai-models-table tbody tr td {
+                padding: 10px 10px;
+                border-bottom: 1px solid #f0f0f1;
+                vertical-align: middle;
+            }
+            .wpenhance-ai-active-provider-row {
+                background: #f0f6fc;
+            }
+            .wpenhance-ai-active-provider-row th {
+                font-weight: 600;
+            }
+            .wpenhance-ai-active-badge {
+                display: inline-block;
+                margin-left: 6px;
+                padding: 1px 7px;
+                border-radius: 10px;
+                background: #0073aa;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 600;
+                letter-spacing: 0.03em;
+                vertical-align: middle;
+            }
+            .wpenhance-ai-tier-used-by {
+                display: block;
+                font-size: 11px;
+                font-weight: 400;
+                color: #646970;
+                margin-top: 2px;
+            }
+            .wpenhance-ai-model-input {
+                font-family: monospace;
+                font-size: 12px;
+                width: 100%;
+                max-width: 340px;
+            }
+            .wpenhance-ai-model-override-badge {
+                display: inline-block;
+                margin-left: 6px;
+                padding: 1px 6px;
+                border-radius: 3px;
+                background: #fff8e5;
+                color: #996800;
+                border: 1px solid #f0c33c;
+                font-size: 11px;
+                font-weight: 600;
+                vertical-align: middle;
+            }
+
+            /* ── Security note ─────────────────────────────────────────── */
             .wpenhance-ai-settings-note {
                 background: #f6f7f7;
                 border-left: 4px solid #c3c4c7;

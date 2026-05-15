@@ -6,6 +6,7 @@ use WPEnhance\AI\Features\Contracts\FeatureInterface;
 use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
 use WPEnhance\AI\Core\CacheStore;
+use WPEnhance\AI\Core\Config;
 
 defined('ABSPATH') || exit;
 
@@ -28,7 +29,7 @@ class ExcerptGenerator implements FeatureInterface {
     public function get_worker_config(): WorkerConfig {
 
         return new WorkerConfig(
-            model:       'claude-haiku-4-5-20251001',
+            model:       Config::model('light'),
             max_tokens:  512,
             temperature: 0.4,
         );

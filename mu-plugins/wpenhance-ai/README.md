@@ -1,24 +1,26 @@
 # WPEnhance AI
 
-An AI assistance framework for WordPress, delivered as an mu-plugin. Adds a lightweight editorial panel to the Gutenberg meta box that lets editors generate meta descriptions, post excerpts, full-content translations, and complete post drafts without leaving the editor — and without shipping an AI product disguised as a WordPress plugin.
+An AI assistance framework for WordPress, delivered as an mu-plugin. Adds a lightweight editorial panel to the post editor that lets editors generate meta descriptions, post excerpts, full-content translations, and complete post drafts without leaving the editor — and without shipping an AI product disguised as a WordPress plugin.
 
-Supports Anthropic Claude, OpenAI, and Google Gemini as interchangeable backends.
+Supports Anthropic Claude, OpenAI, and Google Gemini as interchangeable backends. Model endpoints are configurable from the Settings page — no code changes needed when a new model version ships.
 
 ---
 
 ## Features
 
+The AI panel appears as a metabox in the main column below the editor, giving each feature enough space for its controls and result areas. All features share the same review flow: results are never applied automatically. Every output appears in a dedicated panel where the editor can inspect it before clicking **Apply to Editor** or **Copy**.
+
 ### Meta Description Generator
 
 Generates a ready-to-use SEO meta description from the post title and content. The output is written in the language of the post, detected from the `_lang` post meta field (falling back to `determine_locale()` when absent), so a Catalan page gets a Catalan description without manual configuration.
 
-Uses `claude-haiku-4-5-20251001` (256 token budget, temperature 0.4) — fast and cost-effective for short, structured outputs.
+Uses the **Light** model tier (default: `claude-haiku-4-5-20251001`, 256 token budget, temperature 0.4) — fast and cost-effective for short, structured outputs. The model can be changed from Settings → WPEnhance AI → Models.
 
 ### Excerpt Generator
 
-Produces a concise editorial excerpt of up to 240 characters, again language-aware. Useful for sites where editors frequently skip the excerpt field and the auto-generated fallback from content is too long or poorly framed.
+Produces a concise editorial excerpt of up to 240 characters, language-aware in the same way as the Meta Description Generator. Useful for sites where editors frequently skip the excerpt field and the auto-generated fallback from content is too long or poorly framed.
 
-Uses `claude-haiku-4-5-20251001` (512 token budget, temperature 0.4).
+Uses the **Light** model tier (default: `claude-haiku-4-5-20251001`, 512 token budget, temperature 0.4).
 
 ### Content Translation
 
@@ -26,15 +28,28 @@ Translates the full post or page content to a selected target language while pre
 
 **Block attribute translation** — native blocks like `wp:details` (accordion / disclosure) store their visible text as JSON attribute values inside the block comment rather than in the HTML body. A naive translation pass would leave those strings in the original language, causing the block editor to silently overwrite the translated HTML on the next open. Before sending content to the API, the plugin extracts those strings and replaces them with `__WPAI_N__` placeholders; they are translated in the same API call and reinserted with proper JSON escaping before the result is returned. The extraction covers `summary`, `alt`, `caption`, `label`, `placeholder`, `buttonText`, `title`, and `description` attributes across all block depths.
 
-**Footnote translation** — when the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), they are translated in the same API call as the body content, keeping terminology consistent between text and footnotes. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry.
-
-Translations are never applied automatically. Results appear in a dedicated review panel; the editor clicks **Apply to Editor** to dispatch the translated title, content, and footnotes (when present) in a single action, or **Copy** to handle the content manually. A failure to save footnotes is non-fatal — content and title are still applied and a warning is written to the browser console.
+**Footnote translation** — when the post has native WordPress footnotes (`_footnotes` post meta, introduced in WP 6.3), the plugin attempts to translate them in the same API call as the body content, keeping terminology consistent. The model is instructed to preserve all footnote `id` values and translate only the `content` field of each entry. See the Known Limitations section below.
 
 The target language selector is pre-populated from the post's `_lang` meta, so a French page already has French selected when the panel opens.
 
-Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.2) for higher fidelity on long multilingual content.
+Uses the **Quality** model tier (default: `claude-sonnet-4-6`, 8 192 token budget, temperature 0.2) for higher fidelity on long multilingual content.
 
 **Supported target languages:** English, Spanish, German, French, Italian, Portuguese, Dutch, Catalan, Polish, Russian, Chinese (Simplified), Japanese, Arabic.
+
+#### Chunk mode
+
+A **Mode** selector in the Translation panel offers two options:
+
+- **Full post** — the default behaviour: translate the entire post content, title, block attributes, and footnotes in one API call.
+- **Translate chunk** — a **Text to translate** textarea appears. Paste any snippet of text — a footnote, a heading, a sentence — click the action button, and get back only that snippet translated. The result shows a Copy button with no Apply to Editor, since the user applies it manually wherever it is needed.
+
+Chunk mode is the recommended workaround whenever the full-post path is unreliable (see Known Limitations below).
+
+#### Known limitations
+
+**Footnotes are fragile in full-post mode.** WordPress stores footnotes separately in `_footnotes` post meta as a JSON array. When a full-post translation runs, the footnote JSON is appended to the prompt and the model is asked to return a translated `===FOOTNOTES===` section. In practice this is unreliable: long posts push the combined prompt close to context limits, and the model sometimes omits or corrupts the footnotes section even when the content body translates correctly.
+
+**Workaround:** copy each footnote's text from the WordPress editor footnote panel, switch the Mode selector to *Translate chunk*, paste into the **Text to translate** field, run the translation, and copy the result back into the footnote field. This is more manual but reliable for any length and complexity of footnote. The full-post translation can still be used for the content body — the two workflows are independent.
 
 ### Content Generator
 
@@ -46,13 +61,11 @@ Drafts or rewrites post content directly from the editor panel. Three controls l
 
 **Output type** — Full Article, Introduction only, or Structured Outline.
 
-Results appear in the same review panel used by Translation: the content is never applied automatically. The editor clicks **Apply to Editor** to dispatch the result to the Gutenberg block editor, or **Copy** to handle it manually.
-
-When hints are provided they take priority as the seed. When the Hints field is left empty and the post already has a body, that content is passed to the model as context instead (stripped of HTML markup, capped at 6 000 characters), so the model can extend or rewrite an existing draft. When both are absent the model generates from the title alone.
+When hints are provided they take priority as the seed. When the Hints field is left empty and the post already has a body, that content is passed to the model as context (stripped of HTML markup, capped at 6 000 characters), so the model can extend or rewrite an existing draft. When both are absent the model generates from the title alone.
 
 Generated output uses native Gutenberg block markup (`<!-- wp:paragraph -->`, `<!-- wp:heading -->`, `<!-- wp:list -->`) so results slot directly into the block editor without post-processing.
 
-Uses `claude-sonnet-4-6` (8 192 token budget, temperature 0.6).
+Uses the **Quality** model tier (default: `claude-sonnet-4-6`, 8 192 token budget, temperature 0.6).
 
 ---
 
@@ -94,7 +107,7 @@ If you are using a Plugin Loader to manage mu-plugins, add the main file to your
 
 ## Configuration
 
-### Choosing a Provider
+### Choosing a provider
 
 Navigate to **Settings → WPEnhance AI** and select the active provider from the dropdown. The setting is stored in `wp_options` and takes precedence over the `WPENHANCE_AI_PROVIDER` constant.
 
@@ -104,7 +117,7 @@ Alternatively, define the constant in `wp-config.php`:
 define('WPENHANCE_AI_PROVIDER', 'anthropic'); // 'anthropic' | 'openai' | 'gemini'
 ```
 
-### API Keys
+### API keys
 
 Keys can be entered directly from **Settings → WPEnhance AI**. Each key field shows a status badge indicating whether the key is configured and where it is currently sourced from.
 
@@ -122,7 +135,33 @@ define('WPENHANCE_AI_SECRET', 'your-secret-here');
 
 Existing setups using environment variables or constants continue to work without any changes.
 
-### Provider Timeouts
+### Models
+
+Navigate to **Settings → WPEnhance AI → Models** to override the model string for any provider and tier. Fields are laid out in a table with one row per provider and one column per tier:
+
+| Tier | Default (Anthropic) | Used by |
+|---|---|---|
+| **Light** | `claude-haiku-4-5-20251001` | Meta Description, Excerpt Generator |
+| **Quality** | `claude-sonnet-4-6` | Translation, Content Generator |
+
+Leave a field blank to use the built-in default (shown as placeholder text). Saving an empty value resets a model to the default — no separate reset button needed. An "overridden" badge marks any field carrying a custom value.
+
+Only the active provider's models are used at runtime. The other providers' fields can be pre-configured before switching.
+
+**To update to a new model version** (e.g. when `claude-sonnet-4-7` ships): go to Settings → WPEnhance AI, enter the new model identifier in the Quality field for Anthropic, and save. All features using that tier pick it up immediately — no deployment required.
+
+Equivalent to entering a value in the Settings page, models can also be stored directly in `wp_options`:
+
+```
+wpenhance_ai_model_anthropic_light   → e.g. claude-haiku-4-6
+wpenhance_ai_model_anthropic_quality → e.g. claude-sonnet-4-7
+wpenhance_ai_model_openai_light      → e.g. gpt-4o-mini
+wpenhance_ai_model_openai_quality    → e.g. gpt-4o
+wpenhance_ai_model_gemini_light      → e.g. gemini-2.0-flash
+wpenhance_ai_model_gemini_quality    → e.g. gemini-1.5-pro
+```
+
+### Provider timeouts
 
 All provider API calls use a 120-second `wp_remote_post` timeout. If your host caps `max_execution_time` below this (common on managed hosts at 30–60 s), long translations may fail at the PHP level before the HTTP request completes. Adjust your host's PHP timeout accordingly.
 
@@ -137,9 +176,10 @@ wpenhance-ai/
     Core/
       Autoloader.php            PSR-4 class autoloader
       Plugin.php                Bootstrap: registers hooks, initialises features
-      Config.php                Provider resolution (options → constant)
+      Config.php                Provider + model resolution (options → constant → default)
       KeyStore.php              AES-256-CBC encrypted API key storage
       CacheStore.php            SHA-256 hash-based result cache in post meta
+      BlockTextExtractor.php    Extracts / reinserts translatable block attribute strings
     Contracts/
       AIProviderInterface.php   Contract all providers must satisfy
     Features/
@@ -148,7 +188,7 @@ wpenhance-ai/
       Registry.php              Registers active features with the REST controller
       MetaDescription.php       Meta description generation feature
       ExcerptGenerator.php      Excerpt generation feature
-      Translation.php           Full-content translation feature
+      Translation.php           Full-content translation + chunk translation feature
       ContentGenerator.php      AI content drafting and rewriting feature
     Providers/
       ProviderFactory.php       Instantiates the active provider for a WorkerConfig
@@ -157,24 +197,33 @@ wpenhance-ai/
       OpenAI.php                OpenAI Chat Completions API client
       Gemini.php                Google Generative Language API client
     Admin/
-      MetaBox.php               Gutenberg meta box: renders the AI panel
-      SettingsPage.php          Settings → WPEnhance AI
+      MetaBox.php               Post editor metabox: renders the AI panel (normal context)
+      SettingsPage.php          Settings → WPEnhance AI (provider, models, API keys)
     REST/
       FeatureController.php     POST /wpenhance-ai/v1/feature/{key}/{post_id}
-                                POST /wpenhance-ai/v1/footnotes/{post_id}
   assets/
-    admin.js                    Meta box UI: fetch, render, Apply to Editor, Copy
-    admin.css                   Panel styles
+    admin.js                    Meta box UI: fetch, render, Apply to Editor, Copy, chunk mode
+    admin.css                   Panel styles (card layout, conditional fields)
   templates/
     prompts/
       meta-description.txt      Prompt template for meta description generation
-      translation.txt           Prompt template for content translation
+      translation.txt           Prompt template for full-content translation
+      translation_chunk.txt     Prompt template for single-snippet chunk translation
       content-generator.txt     Prompt template for content drafting / rewriting
 ```
 
-Each feature declares its own model and generation parameters via `get_worker_config()`, independent of the global provider setting. Adding a new feature requires only implementing `FeatureInterface` and registering it in `Registry.php` — no changes to providers or the factory.
+### Model resolution
 
-The `WorkerConfig` value object is passed to `ProviderFactory::make()`, which instantiates the correct provider class for the active backend. Provider classes are interchangeable: all implement `AIProviderInterface` and return a plain string on success or `null` on any failure.
+Features declare a tier — `'light'` or `'quality'` — in their `get_worker_config()` method. `Config::model(string $tier)` resolves the actual model string at runtime:
+
+1. Read `wpenhance_ai_model_{active_provider}_{tier}` from `wp_options`
+2. If empty, fall back to the hard-coded default in `Config::MODEL_DEFAULTS`
+
+This means the model string is never baked into feature code. Adding a new feature requires only implementing `FeatureInterface`, choosing a tier, and registering it in `Registry.php` — no changes to providers, the factory, or any configuration.
+
+### Conditional UI fields
+
+The meta box supports fields that are only visible when another field holds a specific value. Features declare a `condition` key in their `get_ui_fields()` array; `MetaBox.php` renders `data-condition-field` / `data-condition-value` attributes on the wrapper div; `admin.js` wires up `change` listeners on `DOMContentLoaded` to show or hide those wrappers. The Translation chunk textarea uses this pattern and any future conditional field gets the behaviour for free.
 
 ---
 

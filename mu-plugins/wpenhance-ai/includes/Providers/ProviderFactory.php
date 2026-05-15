@@ -10,24 +10,17 @@ defined('ABSPATH') || exit;
 /**
  * Creates an AI provider instance for a given WorkerConfig.
  *
- * The active provider (Anthropic / OpenAI) is still determined by the
- * WPENHANCE_AI_PROVIDER constant, but each feature can supply its own
- * WorkerConfig to control the exact model, token budget, and temperature
- * used for that specific task.
+ * The active provider (Anthropic / OpenAI / Gemini) is determined by
+ * Config::provider().  Each feature supplies its own WorkerConfig to select
+ * the model tier ('light' or 'quality') and generation parameters for that
+ * specific task.  Model strings are resolved by Config::model() at runtime,
+ * so they can be updated from Settings → WPEnhance AI without code changes.
  *
- * Default models per provider (used when no config is passed):
- *   Anthropic → claude-haiku-4-5-20251001   (fast, cost-effective)
- *   OpenAI    → gpt-4o-mini
- *   Gemini    → gemini-2.0-flash
+ * When called without a config (rare fallback path) the 'light' model for
+ * the active provider is used — the same default as Meta Description and
+ * Excerpt Generator.
  */
 class ProviderFactory {
-
-    /** @var array<string, string> Default model per provider slug. */
-    private const DEFAULT_MODELS = [
-        'anthropic' => 'claude-haiku-4-5-20251001',
-        'openai'    => 'gpt-4o-mini',
-        'gemini'    => 'gemini-2.0-flash',
-    ];
 
     public static function make(
         ?WorkerConfig $config = null
@@ -35,9 +28,10 @@ class ProviderFactory {
 
         $provider = Config::provider();
 
+        // Fallback when no WorkerConfig is supplied: use the 'light' model,
+        // which is the cost-effective default for the active provider.
         $config ??= new WorkerConfig(
-            model: self::DEFAULT_MODELS[$provider]
-                   ?? self::DEFAULT_MODELS['anthropic']
+            model: Config::model('light')
         );
 
         return match ($provider) {

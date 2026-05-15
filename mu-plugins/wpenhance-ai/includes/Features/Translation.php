@@ -7,6 +7,7 @@ use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
 use WPEnhance\AI\Core\BlockTextExtractor;
 use WPEnhance\AI\Core\CacheStore;
+use WPEnhance\AI\Core\Config;
 
 defined('ABSPATH') || exit;
 
@@ -52,7 +53,7 @@ class Translation implements FeatureInterface {
     public function get_worker_config(): WorkerConfig {
 
         return new WorkerConfig(
-            model:       'claude-sonnet-4-6',
+            model:       Config::model('quality'),
             max_tokens:  8192,
             temperature: 0.2,
         );
