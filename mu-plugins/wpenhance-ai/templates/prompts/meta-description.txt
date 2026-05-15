@@ -1,4 +1,4 @@
-Write a compelling SEO meta description in {{locale}}.
+Write a compelling SEO meta description in {{language}}.
 
 Requirements:
 - Maximum 90 characters

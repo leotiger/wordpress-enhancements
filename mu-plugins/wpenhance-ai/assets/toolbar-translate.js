@@ -83,6 +83,26 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
     });
 
+    // ── Clear input button ────────────────────────────────────────────────────
+
+    popover.querySelector('.wpenhance-ai-tp__btn-clear-input').addEventListener('click', () => {
+        const inputArea = popover.querySelector('.wpenhance-ai-tp__input');
+        inputArea.value = '';
+        inputArea.focus();
+    });
+
+    // ── Clear all button (input + output) ──────────────────────────────────────
+
+    popover.querySelector('.wpenhance-ai-tp__btn-clear-all').addEventListener('click', () => {
+        const inputArea = popover.querySelector('.wpenhance-ai-tp__input');
+        const outputArea = popover.querySelector('.wpenhance-ai-tp__output');
+        const resultPanel = popover.querySelector('.wpenhance-ai-tp__result');
+        inputArea.value = '';
+        outputArea.value = '';
+        resultPanel.hidden = true;
+        inputArea.focus();
+    });
+
     // ── Close button ──────────────────────────────────────────────────────────
 
     popover.querySelector('.wpenhance-ai-tp__close').addEventListener('click', () => {
@@ -146,10 +166,17 @@ function buildPopover() {
                 placeholder="Paste text, or select text on the page first…"
             ></textarea>
 
-            <button
-                type="button"
-                class="button button-primary wpenhance-ai-tp__btn-translate"
-            >Translate</button>
+            <div class="wpenhance-ai-tp__input-actions">
+                <button
+                    type="button"
+                    class="button button-primary wpenhance-ai-tp__btn-translate"
+                >Translate</button>
+                <button
+                    type="button"
+                    class="button wpenhance-ai-tp__btn-clear-input"
+                    aria-label="Clear input"
+                >Clear</button>
+            </div>
 
         </div>
 
@@ -163,6 +190,7 @@ function buildPopover() {
             ></textarea>
             <div class="wpenhance-ai-tp__result-actions">
                 <button type="button" class="button button-secondary wpenhance-ai-tp__btn-copy">Copy</button>
+                <button type="button" class="button wpenhance-ai-tp__btn-clear-all">Clear All</button>
             </div>
         </div>`;
 

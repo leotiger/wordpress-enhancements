@@ -57,14 +57,14 @@ class AdminToolbar {
             'wpenhance-ai-toolbar',
             WPENHANCE_AI_URL . '/assets/toolbar-translate.css',
             [],
-            '1.0.7'
+            '1.1.0'
         );
 
         wp_enqueue_script(
             'wpenhance-ai-toolbar',
             WPENHANCE_AI_URL . '/assets/toolbar-translate.js',
             [],
-            '1.0.7',
+            '1.1.0',
             true   // load in footer
         );
 

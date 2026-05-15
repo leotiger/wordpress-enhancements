@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.1.1] — 2026-05-16
+
+### Fixed
+
+* **Meta Description and Excerpt Generator falling back to English for non-English locales** — both features were injecting the raw WordPress locale string (`it_IT`, `pt_BR`, `fr_FR`) directly into the AI prompt. Models don't reliably recognise BCP 47 locale tags as language instructions and default to English. Fixed by resolving the locale to a human-readable language name via `Translation::LANGUAGES` (e.g. `it_IT` → `Italian`) before building the prompt, mirroring the approach used by the Translation feature. A fallback to the raw locale string covers any language not in the map.
+
+* **Quick Translate "Clear" buttons not loading in the admin toolbar** — `AdminToolbar.php` was enqueuing `toolbar-translate.js` and `toolbar-translate.css` at version `1.0.7`. Browsers with a cached copy of those assets never loaded the updated files containing the Clear button HTML and event listeners. Bumped both handles to `1.1.0` to force a cache flush, consistent with the editor-translate handles in `MetaBox.php`.
+
+* **Quick Translate action-button rows unstyled** — three CSS flex rules were missing from the toolbar and editor stylesheets: `.wpenhance-ai-tp__input-actions` in `toolbar-translate.css`, and both `.wpenhance-ai-ep__input-actions` and `.wpenhance-ai-ep__result-actions` in `editor-translate.css`. Without them the Translate/Clear and Copy/Clear All button pairs lacked the `display: flex; gap: 8px` layout that the equivalent `.wpenhance-ai-tp__result-actions` rule (already present in the toolbar stylesheet) provides.
+
+### Changed
+
+* `templates/prompts/meta-description.txt` — placeholder renamed from `{{locale}}` to `{{language}}` to reflect that a human-readable language name is now injected.
+
+---
+
 ## [1.1.0] — 2026-05-15
 
 ### Added
@@ -43,6 +59,12 @@
 
 * **`assets/editor-translate.css`** — styles for the injected toolbar button and editor popover,
   matching the admin bar popover design.
+
+* **Quick Translate Clear buttons** — "Clear" button added to both admin toolbar and editor
+  Quick Translate popovers for streamlined chunk translation workflows. In the input section,
+  a "Clear" button instantly empties just the textarea for the next snippet. In the result section,
+  a "Clear All" button clears both input and output, hides the result panel, and refocuses the
+  input field — eliminating the manual clearing step between repeated translations.
 
 ### Changed
 

@@ -7,6 +7,7 @@ use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
 use WPEnhance\AI\Core\CacheStore;
 use WPEnhance\AI\Core\Config;
+use WPEnhance\AI\Features\Translation;
 
 defined('ABSPATH') || exit;
 
@@ -64,6 +65,11 @@ class MetaDescription implements FeatureInterface {
         $locale = get_post_meta($post_id, '_lang', true)
             ?: determine_locale();
 
+        // Convert WordPress locale (e.g. 'it_IT') or short code (e.g. 'it')
+        // to a human-readable name the model can reliably act on.
+        $lang_code = strtolower(explode('_', $locale)[0]);
+        $language  = Translation::LANGUAGES[$lang_code] ?? $locale;
+
         // ── Cache check ───────────────────────────────────────────────────────
         $hash   = CacheStore::hash([$post->post_content, $post->post_title, $locale]);
         $cached = empty($params['force_refresh'])
@@ -88,9 +94,9 @@ class MetaDescription implements FeatureInterface {
         }
 
         $prompt = str_replace(
-            ['{{locale}}', '{{title}}', '{{content}}'],
+            ['{{language}}', '{{title}}', '{{content}}'],
             [
-                $locale,
+                $language,
                 $post->post_title,
                 mb_substr($content, 0, 5000),
             ],

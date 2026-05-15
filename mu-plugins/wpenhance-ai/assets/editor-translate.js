@@ -199,9 +199,14 @@
                     placeholder="Paste text, or select text in the editor first…"
                 ></textarea>
 
-                <button type="button" class="components-button is-primary wpenhance-ai-ep__translate">
-                    Translate
-                </button>
+                <div class="wpenhance-ai-ep__input-actions">
+                    <button type="button" class="components-button is-primary wpenhance-ai-ep__translate">
+                        Translate
+                    </button>
+                    <button type="button" class="components-button wpenhance-ai-ep__clear-input" aria-label="Clear input">
+                        Clear
+                    </button>
+                </div>
 
             </div>
 
@@ -212,9 +217,14 @@
                     rows="5"
                     readonly
                 ></textarea>
-                <button type="button" class="components-button is-secondary wpenhance-ai-ep__copy">
-                    Copy
-                </button>
+                <div class="wpenhance-ai-ep__result-actions">
+                    <button type="button" class="components-button is-secondary wpenhance-ai-ep__copy">
+                        Copy
+                    </button>
+                    <button type="button" class="components-button wpenhance-ai-ep__clear-all">
+                        Clear All
+                    </button>
+                </div>
             </div>`;
 
         return el;
@@ -227,6 +237,14 @@
         // Close button
         popover.querySelector( '.wpenhance-ai-ep__close' )
             .addEventListener( 'click', () => closePopover( popover ) );
+
+        // Clear input button
+        popover.querySelector( '.wpenhance-ai-ep__clear-input' )
+            .addEventListener( 'click', () => {
+                const inputArea = popover.querySelector( '#wpai-ep-input' );
+                inputArea.value = '';
+                inputArea.focus();
+            } );
 
         // Translate button
         popover.querySelector( '.wpenhance-ai-ep__translate' )
@@ -246,6 +264,18 @@
                 const btn = e.currentTarget;
                 btn.textContent = 'Copied ✓';
                 setTimeout( () => { btn.textContent = 'Copy'; }, 2000 );
+            } );
+
+        // Clear all button
+        popover.querySelector( '.wpenhance-ai-ep__clear-all' )
+            .addEventListener( 'click', () => {
+                const inputArea = popover.querySelector( '#wpai-ep-input' );
+                const outputArea = popover.querySelector( '.wpenhance-ai-ep__textarea--output' );
+                const resultPanel = popover.querySelector( '.wpenhance-ai-ep__result' );
+                inputArea.value = '';
+                outputArea.value = '';
+                resultPanel.hidden = true;
+                inputArea.focus();
             } );
 
         // Close on outside click

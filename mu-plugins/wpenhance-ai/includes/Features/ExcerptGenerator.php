@@ -7,6 +7,7 @@ use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
 use WPEnhance\AI\Core\CacheStore;
 use WPEnhance\AI\Core\Config;
+use WPEnhance\AI\Features\Translation;
 
 defined('ABSPATH') || exit;
 
@@ -64,6 +65,11 @@ class ExcerptGenerator implements FeatureInterface {
         $locale = get_post_meta($post_id, '_lang', true)
             ?: determine_locale();
 
+        // Convert WordPress locale (e.g. 'it_IT') or short code (e.g. 'it')
+        // to a human-readable name the model can reliably act on.
+        $lang_code = strtolower(explode('_', $locale)[0]);
+        $language  = Translation::LANGUAGES[$lang_code] ?? $locale;
+
         // ── Cache check ───────────────────────────────────────────────────────
         $hash   = CacheStore::hash([$post->post_content, $locale]);
         $cached = empty($params['force_refresh'])
@@ -88,7 +94,7 @@ class ExcerptGenerator implements FeatureInterface {
                 'role'    => 'user',
                 'content' =>
                     'Write a compelling excerpt in ' .
-                    $locale .
+                    $language .
                     '. Maximum 240 characters.' .
                     "\n\n" .
                     $content,
