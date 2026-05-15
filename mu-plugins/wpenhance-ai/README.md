@@ -198,12 +198,18 @@ wpenhance-ai/
       Gemini.php                Google Generative Language API client
     Admin/
       MetaBox.php               Post editor metabox: renders the AI panel (normal context)
+      AdminToolbar.php          WP admin bar Quick Translate node + script/style enqueue
       SettingsPage.php          Settings → WPEnhance AI (provider, models, API keys)
     REST/
       FeatureController.php     POST /wpenhance-ai/v1/feature/{key}/{post_id}
+                                POST /wpenhance-ai/v1/translate-chunk (toolbar/editor popover)
   assets/
     admin.js                    Meta box UI: fetch, render, Apply to Editor, Copy, chunk mode
     admin.css                   Panel styles (card layout, conditional fields)
+    toolbar-translate.js        Admin bar Quick Translate popover (vanilla JS)
+    toolbar-translate.css       Admin bar popover styles
+    editor-translate.js         Editor top-toolbar Quick Translate (DOM injection + MutationObserver)
+    editor-translate.css        Editor toolbar button and popover styles
   templates/
     prompts/
       meta-description.txt      Prompt template for meta description generation
@@ -224,6 +230,20 @@ This means the model string is never baked into feature code. Adding a new featu
 ### Conditional UI fields
 
 The meta box supports fields that are only visible when another field holds a specific value. Features declare a `condition` key in their `get_ui_fields()` array; `MetaBox.php` renders `data-condition-field` / `data-condition-value` attributes on the wrapper div; `admin.js` wires up `change` listeners on `DOMContentLoaded` to show or hide those wrappers. The Translation chunk textarea uses this pattern and any future conditional field gets the behaviour for free.
+
+---
+
+## Known Issues and Troubleshooting
+
+### Editor toolbar Quick Translate button does not appear on first load
+
+**Symptom:** The translation icon (⇌) is missing from the pinned-items area of the Gutenberg top toolbar (next to *Settings* and *Create Block Theme*) when the page first loads. Reloading — especially a hard reload (Ctrl+Shift+R / Cmd+Shift+R) — makes it appear reliably.
+
+**Root cause:** The button is injected into the DOM via a `MutationObserver` rather than through a registered Gutenberg SlotFill. WordPress's SlotFill API (`PluginMoreMenuItem`, `PluginSidebar`, etc.) does not expose a reliable slot for the top toolbar area across all WP 6.x versions and FSE contexts — different versions ship different packages, scopes, and slot identifiers. DOM injection is the only cross-version approach, but it creates a race condition: our script injects the button, then React finishes its own post-mount reconciliation pass and re-renders the pinned-items container, wiping the injected element. Other plugins that appear reliably in the same bar use the `@wordpress/plugins` registration API internally, which hooks into React's render cycle directly and therefore survives reconciliation. Without access to that internal hook, any externally injected element is at the mercy of React's re-render timing.
+
+**Workaround:** Reload the page (F5 or Cmd+R) after the editor finishes loading. A single reload is sufficient — the button appears consistently from the second load onward in most environments. The Admin Toolbar Quick Translate (visible on every admin page *outside* the canvas editor) is always available as a fallback and is unaffected by this issue.
+
+**Status:** Under investigation. A future release may switch to a `wp.plugins.registerPlugin` approach once a stable slot for the top toolbar is identified across WP 6.3–6.x.
 
 ---
 

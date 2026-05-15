@@ -1,5 +1,75 @@
 # Changelog
 
+## [1.1.0] — 2026-05-15
+
+### Added
+
+* **Admin Toolbar Quick Translate** — a translation icon (⇌) appears in the WordPress admin bar
+  on every admin page. Clicking it opens a fixed-position popover with a target-language selector,
+  a free-text textarea, a Translate button, and a Copy button for the result. The feature calls the
+  new `/translate-chunk` REST endpoint and is completely independent from the post-editor Translation
+  feature — no post ID is required and no content is modified in the editor. Useful for translating
+  any short text snippet on the fly without opening a specific post.
+
+* **Editor Toolbar Quick Translate** — the same popover is available inside the Gutenberg block
+  editor and the FSE site/template editor. This covers the case where the WordPress admin bar is
+  hidden in canvas-edit mode (e.g. when editing a footer template part at
+  `site-editor.php?canvas=edit`). The translate button is injected into the `.interface-pinned-items`
+  bar alongside the native *Settings* and *Create Block Theme* buttons, using the
+  `components-button is-compact has-icon` classes to match the surrounding native buttons visually.
+
+* **`POST /wpenhance-ai/v1/translate-chunk` REST endpoint** — accepts `target_language` (ISO code)
+  and `chunk_text` (free-form string), validates the language against the supported list, and
+  delegates to `Translation::run_chunk()`. Requires `edit_posts` capability. Used by both the
+  admin bar and editor popovers.
+
+* **`includes/Admin/AdminToolbar.php`** — registers the admin bar node, enqueues
+  `toolbar-translate.js` and `toolbar-translate.css` on both front-end (when admin bar is showing)
+  and admin pages. Localises `WPEnhanceAIToolbar` with `restUrl`, `nonce`, and `languages`.
+
+* **`assets/toolbar-translate.js`** — vanilla JS IIFE for the admin bar popover. Pre-fills the
+  textarea from the current text selection (`window.getSelection()`). Handles open/close/position,
+  Escape key, and outside-click dismissal.
+
+* **`assets/toolbar-translate.css`** — fixed-position popover at `z-index: 99999`, slide-in
+  animation, WP admin colour tokens throughout.
+
+* **`assets/editor-translate.js`** — vanilla JS IIFE for the editor toolbar button. Uses a
+  `MutationObserver` on `document.body` to detect when the editor header renders (React renders it
+  asynchronously). Once the target container is found a second, persistent per-container observer
+  watches for the button being removed by React reconciliation and immediately re-injects it. A
+  750 ms `setInterval` for the first 30 s provides an additional safety net. The popover
+  implementation mirrors `toolbar-translate.js`.
+
+* **`assets/editor-translate.css`** — styles for the injected toolbar button and editor popover,
+  matching the admin bar popover design.
+
+### Changed
+
+* `Translation::run_chunk()` changed from `private` to `public` so `FeatureController` can call it
+  directly from the new REST endpoint without going through the full `run()` path.
+* `Translation::LANGUAGES` and `Translation::get_languages()` made `public` so the admin bar and
+  editor popovers can receive the supported language list via `wp_localize_script`.
+* `includes/Admin/MetaBox.php` — two new hooks added: `enqueue_block_editor_assets` →
+  `enqueue_editor_plugin()` (fires in both the post editor and site editor) and
+  `admin_enqueue_scripts` → `enqueue_editor_plugin_for_site_editor()` (belt-and-suspenders
+  guarantee for `site-editor.php` on installations where `enqueue_block_editor_assets` does not
+  fire reliably). `wp_script_is()` prevents double-enqueue when both hooks fire on the same load.
+* `includes/Core/Plugin.php` — `AdminToolbar::init()` added to `boot()`.
+* `wpenhance-ai.php` — plugin version bumped to `1.1.0`.
+* Asset versions bumped to `1.1.0` on all editor-translate handles to force a browser cache flush.
+
+### Known Issues
+
+* **Editor toolbar button requires a page reload on first load** — the button is injected via DOM
+  mutation rather than the `@wordpress/plugins` registration API (which has no reliable top-toolbar
+  slot across all WP 6.x / FSE versions). React's post-mount reconciliation can remove the injected
+  element before the per-container observer is attached. A reload consistently resolves the issue.
+  The Admin Toolbar popover is unaffected and always available as a fallback. See *Known Issues and
+  Troubleshooting* in the README for full details.
+
+---
+
 ## [1.0.6] — 2026-05-15
 
 ### Added

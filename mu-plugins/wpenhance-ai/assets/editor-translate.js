@@ -79,18 +79,34 @@
 
     /* ── MutationObserver injection ────────────────────────────────────────── */
 
+    // Track containers we are already watching so we do not attach multiple
+    // per-container observers to the same node.
+    const monitoredContainers = new WeakSet();
+
     function watchAndInject( popover ) {
 
-        // Initial attempt (header may already exist if script loaded late).
+        // Initial attempt — header may already exist if script loaded late.
         tryInject( popover );
 
-        // Keep watching — the editor renders asynchronously and may re-mount
-        // the header when navigating between list / canvas views in FSE.
-        const observer = new MutationObserver( () => tryInject( popover ) );
-        observer.observe( document.body, { childList: true, subtree: true } );
+        // Body-level observer: detects when the editor header first renders
+        // (React renders it asynchronously) and when it re-mounts after
+        // navigating between list / canvas views in FSE.
+        let rafId = null;
+        const bodyObserver = new MutationObserver( () => {
+            if ( rafId ) return;
+            rafId = requestAnimationFrame( () => {
+                tryInject( popover );
+                rafId = null;
+            } );
+        } );
+        bodyObserver.observe( document.body, { childList: true, subtree: true } );
 
-        // Disconnect after 60 s — editor is definitely stable by then.
-        setTimeout( () => observer.disconnect(), 60000 );
+        // Belt-and-suspenders poll for the first 30 s.
+        const poll = setInterval( () => tryInject( popover ), 750 );
+        setTimeout( () => {
+            clearInterval( poll );
+            bodyObserver.disconnect();
+        }, 30000 );
     }
 
     function tryInject( popover ) {
@@ -98,9 +114,24 @@
         for ( const sel of HEADER_SELECTORS ) {
 
             const container = document.querySelector( sel );
+            if ( !container ) continue;
 
-            if ( container && !container.querySelector( '.' + BTN_CLASS ) ) {
+            // Inject our button if it isn't already there.
+            if ( !container.querySelector( '.' + BTN_CLASS ) ) {
                 container.insertBefore( buildButton( popover ), container.firstChild );
+            }
+
+            // Attach a persistent per-container observer the first time we
+            // see this container node.  It watches only the container's direct
+            // children so it fires the instant React's reconciliation removes
+            // our button — and immediately puts it back, with no poll-tick gap.
+            if ( !monitoredContainers.has( container ) ) {
+                monitoredContainers.add( container );
+                new MutationObserver( () => {
+                    if ( !container.querySelector( '.' + BTN_CLASS ) ) {
+                        container.insertBefore( buildButton( popover ), container.firstChild );
+                    }
+                } ).observe( container, { childList: true } );
             }
         }
     }

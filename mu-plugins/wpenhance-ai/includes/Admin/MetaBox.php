@@ -95,7 +95,7 @@ class MetaBox {
             'wpenhance-ai-editor',
             WPENHANCE_AI_URL . '/assets/editor-translate.css',
             ['wp-components'],
-            '1.0.8'
+            '1.1.0'
         );
 
         // Pure vanilla JS — no WP React/component packages needed.
@@ -105,7 +105,7 @@ class MetaBox {
             'wpenhance-ai-editor',
             WPENHANCE_AI_URL . '/assets/editor-translate.js',
             $editor_deps,
-            '1.0.8',
+            '1.1.0',
             true
         );
 
