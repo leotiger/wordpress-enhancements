@@ -53,7 +53,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.js',
             ['wp-api'],
-            '1.0.7',
+            '1.1.6',
             true
         );
 
@@ -70,7 +70,7 @@ class MetaBox {
             'wpenhance-ai-admin',
             WPENHANCE_AI_URL . '/assets/admin.css',
             [],
-            '1.0.7'
+            '1.1.6'
         );
     }
 

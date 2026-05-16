@@ -99,41 +99,105 @@ document.addEventListener('click', async (event) => {
 
     if (!textarea) return;
 
-    // Gutenberg loads meta boxes inside an iframe — wp.data lives in the
-    // parent window, not in this iframe context.  window.parent.wp.data
-    // is the live editor store; dispatching to window.wp.data (the iframe)
-    // is a no-op that leaves the editor unchanged.
-    if (window.parent.wp?.data) {
+    // Clear any previous error and show an in-progress state.
+    clearApplyError(button);
+    button.disabled    = true;
+    button.textContent = 'Applying…';
 
-        const payload = { content: textarea.value };
-        if (translatedTitle) payload.title = translatedTitle;
+    try {
 
-        // Apply footnotes through the Gutenberg store so they are part of the
-        // same save cycle as the content.  Writing directly to the DB via a
-        // REST call would be overwritten the moment the user hits Save, because
-        // Gutenberg flushes its own meta.footnotes back to footnotes on save.
-        const footnotesJson = result?.dataset.footnotes || '';
-        if (footnotesJson) payload.meta = { footnotes: footnotesJson };
+        // Gutenberg loads meta boxes inside an iframe — wp.data lives in the
+        // parent window, not in this iframe context.  window.parent.wp.data
+        // is the live editor store; dispatching to window.wp.data (the iframe)
+        // is a no-op that leaves the editor unchanged.
+        if (window.parent.wp?.data) {
 
-        window.parent.wp.data
-            .dispatch('core/editor')
-            .editPost(payload);
+            const payload = { content: textarea.value };
+            if (translatedTitle) payload.title = translatedTitle;
 
-    } else {
+            // Apply footnotes through the Gutenberg store so they are part of
+            // the same save cycle as the content.  Writing directly to the DB
+            // via a REST call would be overwritten the moment the user hits
+            // Save, because Gutenberg flushes its own meta.footnotes on save.
+            const footnotesJson = result?.dataset.footnotes || '';
+            if (footnotesJson) payload.meta = { footnotes: footnotesJson };
 
-        // Classic editor: no iframe, #content and #title are in this document.
-        const classicEditor = document.querySelector('#content');
-        if (classicEditor) classicEditor.value = textarea.value;
+            // Snapshot the editor's current content so we can verify the
+            // dispatch actually took effect after it resolves.
+            const editorSelect  = window.parent.wp.data.select('core/editor');
+            const beforeContent = editorSelect.getEditedPostAttribute('content') ?? '';
 
-        if (translatedTitle) {
-            const classicTitle = document.querySelector('#title');
-            if (classicTitle) classicTitle.value = translatedTitle;
+            await window.parent.wp.data
+                .dispatch('core/editor')
+                .editPost(payload);
+
+            // Verify: the store must now hold different content, or content
+            // that already matched what we sent (idempotent re-apply).
+            const afterContent  = editorSelect.getEditedPostAttribute('content') ?? '';
+            const contentChanged = afterContent !== beforeContent;
+            const contentMatches = afterContent.trim() === textarea.value.trim();
+
+            if (!contentChanged && !contentMatches) {
+                throw new Error('The editor did not accept the content — please try again.');
+            }
+
+        } else {
+
+            // Classic editor: no iframe, #content and #title are in this document.
+            const classicEditor = document.querySelector('#content');
+            if (!classicEditor) throw new Error('Classic editor element not found.');
+
+            classicEditor.value = textarea.value;
+
+            if (translatedTitle) {
+                const classicTitle = document.querySelector('#title');
+                if (classicTitle) classicTitle.value = translatedTitle;
+            }
         }
+
+        button.textContent = 'Applied ✓';
+        // Leave disabled — re-applying the same content is a no-op and confusing.
+
+    } catch (err) {
+
+        // Restore the button so the user can retry.
+        button.textContent = 'Apply to Editor';
+        button.disabled    = false;
+        showApplyError(button, err.message || 'Apply failed — please try again.');
+    }
+});
+
+/**
+ * Show an inline error message beneath the Apply button's row.
+ */
+function showApplyError(button, message) {
+
+    const btnRow = button.closest('.wpenhance-ai-btn-row');
+    if (!btnRow) return;
+
+    let notice = btnRow.querySelector('.wpenhance-ai-apply-error');
+
+    if (!notice) {
+        notice = document.createElement('span');
+        notice.className = 'wpenhance-ai-apply-error';
+        btnRow.insertAdjacentElement('afterend', notice);
     }
 
-    button.textContent = 'Applied ✓';
-    button.disabled    = true;
-});
+    notice.textContent = message;
+}
+
+/**
+ * Remove any previously shown Apply error notice.
+ */
+function clearApplyError(button) {
+
+    const btnRow = button.closest('.wpenhance-ai-btn-row');
+    if (!btnRow) return;
+
+    btnRow.nextElementSibling
+        ?.classList.contains('wpenhance-ai-apply-error')
+        && btnRow.nextElementSibling.remove();
+}
 
 // ─── "Copy" button ───────────────────────────────────────────────────────────
 
@@ -218,21 +282,7 @@ async function runFeature(featureKey, postId, params, resultEl) {
 
         } else {
 
-            const cachedBadge = data.cached
-                ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
-                : '';
-
-            const refreshRow = data.cached
-                ? renderRefreshRow(featureKey, postId)
-                : '';
-
-            resultEl.innerHTML = `
-                <p class="wpenhance-ai-result-meta">${cachedBadge}</p>
-                <textarea
-                    class="wpenhance-ai-textarea"
-                    rows="4"
-                >${escapeHtml(data.output)}</textarea>
-                ${refreshRow}`;
+            renderTextResult(resultEl, data, featureKey, postId);
         }
 
     } catch (_) {
@@ -346,6 +396,91 @@ function renderChunkResult(container, data) {
                     type="button"
                     class="button button-secondary wpenhance-ai-copy"
                 >Copy</button>
+            </div>
+        </div>`;
+}
+
+/**
+ * Render the result area for short text outputs (meta descriptions, excerpts…).
+ *
+ * Always includes a Copy button.  For meta-description results an ⓘ info
+ * button is also rendered; hovering/focusing it reveals a character-count
+ * overlay with an SEO quality hint.
+ */
+function renderTextResult(container, data, featureKey, postId) {
+
+    const text = data.output || '';
+
+    const cachedBadge = data.cached
+        ? ' <span class="wpenhance-ai-cached-badge">cached</span>'
+        : '';
+
+    const refreshRow = data.cached
+        ? renderRefreshRow(featureKey, postId)
+        : '';
+
+    const infoHtml = featureKey === 'meta-description'
+        ? buildMetaInfoOverlay(text.length)
+        : '';
+
+    container.innerHTML = `
+        <p class="wpenhance-ai-result-meta">${cachedBadge}</p>
+        <div class="wpenhance-ai-textarea-wrap">
+            <textarea
+                class="wpenhance-ai-textarea"
+                rows="3"
+            >${escapeHtml(text)}</textarea>
+        </div>
+        <div class="wpenhance-ai-result-bar">
+            <button
+                type="button"
+                class="button button-secondary wpenhance-ai-copy"
+            >Copy</button>
+            ${infoHtml}
+        </div>
+        ${refreshRow}`;
+}
+
+/**
+ * Build the ⓘ info button + character-count tooltip for meta descriptions.
+ *
+ * Quality thresholds:
+ *   140–160 chars → green  (optimal SERP real estate)
+ *   120–139 / 161–180 → amber  (borderline)
+ *   < 120 or > 180      → red    (too short / too long)
+ */
+function buildMetaInfoOverlay(charCount) {
+
+    let quality, qualityClass;
+
+    if (charCount >= 140 && charCount <= 160) {
+
+        quality      = `✓ Good length (${charCount} chars)`;
+        qualityClass = '--good';
+
+    } else if (charCount >= 120 && charCount <= 180) {
+
+        quality      = `⚠ Borderline (${charCount} chars)`;
+        qualityClass = '--warn';
+
+    } else {
+
+        quality      = charCount < 120
+            ? `✗ Too short (${charCount} chars)`
+            : `✗ Too long (${charCount} chars)`;
+        qualityClass = '--bad';
+    }
+
+    return `
+        <div class="wpenhance-ai-info-wrap">
+            <button
+                type="button"
+                class="wpenhance-ai-info-btn"
+                aria-label="SEO character-count info"
+            >ⓘ</button>
+            <div class="wpenhance-ai-info-overlay" role="tooltip">
+                <span class="wpenhance-ai-info-quality ${qualityClass}">${quality}</span>
+                <span class="wpenhance-ai-info-hint">Target: 140–160 chars for optimal SERP display</span>
             </div>
         </div>`;
 }

@@ -31,7 +31,7 @@ class MetaDescription implements FeatureInterface {
 
         return new WorkerConfig(
             model:       Config::model('light'),
-            max_tokens:  256,
+            max_tokens:  384,
             temperature: 0.4,
         );
     }
@@ -125,10 +125,50 @@ class MetaDescription implements FeatureInterface {
             ];
         }
 
+        $result = self::clean_output($result);
+
         $payload = ['output' => $result, 'type' => 'text'];
 
         CacheStore::set($post_id, $this->get_key(), $hash, $payload);
 
         return array_merge(['success' => true], $payload);
+    }
+
+    // ── Output cleaning ───────────────────────────────────────────────────────
+
+    /**
+     * Strip model formatting artifacts from the raw output so that only
+     * the bare meta description text reaches the UI.
+     *
+     * Handles:
+     *  - Surrounding single or double quotes
+     *  - "Meta description:" prefix (any capitalisation)
+     *  - **bold** markdown wrappers
+     *  - Internal newlines / excess whitespace collapsed to one space
+     */
+    private static function clean_output(string $text): string {
+
+        $text = trim($text);
+
+        // Strip surrounding quotes (single or double, may wrap the whole string).
+        $text = preg_replace('/^["\'](.+)["\']$/s', '$1', $text) ?? $text;
+
+        // If the model included an analysis section separated by --- or ***,
+        // keep only what comes before the first separator.
+        $text = preg_split('/^-{3,}|\*{3,}/m', $text)[0] ?? $text;
+
+        // Strip markdown headings (lines starting with one or more #).
+        $text = preg_replace('/^#{1,6}[^\n]*\n?/m', '', $text) ?? $text;
+
+        // Strip "Meta description[:]" and similar labels (any capitalisation).
+        $text = preg_replace('/^\s*meta\s+description\s*[:\-–]?\s*/i', '', $text) ?? $text;
+
+        // Strip **bold** markdown wrappers the model sometimes adds.
+        $text = preg_replace('/\*\*(.+?)\*\*/s', '$1', $text) ?? $text;
+
+        // Collapse internal newlines / excess whitespace to a single space.
+        $text = preg_replace('/\s+/', ' ', $text) ?? $text;
+
+        return trim($text);
     }
 }

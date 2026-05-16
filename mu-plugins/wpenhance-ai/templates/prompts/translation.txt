@@ -10,6 +10,10 @@ Rules:
 - Maintain the same tone, style, and formatting.
 - Do not introduce any HTML tags that are not present in the source —
   in particular, never add <br> or <br /> tags.
+- Preserve container block nesting exactly: every inner block comment
+  (<!-- wp:inner-block -->) and all of its content must remain inside its
+  parent container's opening and closing HTML tags. Do not output a
+  container's closing HTML tag until every one of its inner blocks is complete.
 - Do not add any preamble, explanations, notes, or commentary.
 
 Output format:

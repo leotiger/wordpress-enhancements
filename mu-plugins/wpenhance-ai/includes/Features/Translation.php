@@ -360,6 +360,17 @@ class Translation implements FeatureInterface {
             }
         }
 
+        // ── Repair escaped inner blocks ───────────────────────────────────────
+        // The model sometimes misplaces a container block's closing HTML tag,
+        // leaving inner blocks (accordion items, tab panels, etc.) as top-level
+        // siblings instead of staying nested inside their parent container.
+        // Compare the translated block tree against the original and re-nest
+        // any escaped blocks before the content reaches the editor.
+        $translated_content = BlockTextExtractor::repair_structure(
+            $translated_content,
+            $post->post_content
+        );
+
         // ── Strip stray <br> tags ─────────────────────────────────────────────
         // Models reliably hallucinate <br> tags between blocks to "preserve"
         // newlines, breaking the Gutenberg block parser.  The prompt already

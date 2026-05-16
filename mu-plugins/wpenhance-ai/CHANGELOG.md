@@ -1,5 +1,75 @@
 # Changelog
 
+## [1.1.6] — 2026-05-16
+
+### Added
+
+* **Meta description result UI** — the Generate Meta Description panel now renders a proper result bar instead of a plain textarea:
+  * **Copy button** — one-click clipboard copy with "Copied ✓" feedback (2 s), consistent with the translation panel.
+  * **ⓘ info overlay** — hovering or focusing the info icon reveals a dark tooltip showing the character count and an SEO quality hint: green for 140–160 chars (optimal), amber for 120–139 / 161–180 (borderline), red for anything outside that range.
+  * Textarea rows reduced to 3 (meta descriptions are short by design).
+
+### Fixed
+
+* **Model output artifacts stripped on the server** — `MetaDescription::clean_output()` runs before the result is cached and returned. It removes: surrounding single/double quotes, "Meta description:" prefixes (any capitalisation), `**bold**` markdown wrappers, and internal newlines/excess whitespace collapsed to a single space.
+
+---
+
+## [1.1.5] — 2026-05-16
+
+### Changed
+
+* **Meta Description character limit raised to 140–160 characters** — the prompt previously capped output at 90 characters, which is well below what Google displays in SERPs (up to ~160 characters). The requirement is now "between 140 and 160 characters — aim for the upper end to maximise SERP real estate", matching standard SEO guidance. The `max_tokens` budget for the feature is raised from 256 to 384 to give the model adequate headroom for longer descriptions, particularly in languages like German that expand significantly relative to English.
+
+---
+
+## [1.1.4] — 2026-05-16
+
+### Fixed
+
+* **Accordion block repair algorithm was targeting the wrong failure mode** — the 1.1.3 repair assumed escaped inner blocks always appear *after* their parent container at the top level (Case 2). The actual observed failure is the opposite: the model emits the inner blocks (accordion panel, accordion item) as top-level blocks *before* the container, then also emits the full container with those same blocks correctly nested inside it — producing duplication rather than simple escape. The 1.1.3 algorithm (absorb siblings that come after) never matched, the count bail-out fired, and the broken content was returned unchanged.
+
+  The repair in `BlockTextExtractor::repair_structure()` now explicitly handles both failure modes in order:
+
+  **Case 1 — duplication (more top-level blocks than original):** A greedy forward walk matches each translated top-level block against the next expected block name from the original sequence. Blocks that do not match the expected name are skipped — they are the erroneously duplicated inner blocks. The container block that does match is kept, along with its `innerBlocks` as correctly parsed by `parse_blocks()` — meaning the properly-nested copies of the inner blocks are preserved without any further action.
+
+  **Case 2 — escape without duplication (fewer top-level blocks than original):** The previous sibling-absorption logic is retained (renamed `reattach_escaped_siblings`), covering the less-common scenario where the model places the container's closing tag too early and items escape to the top level *after* the container without also appearing inside it.
+
+  Both paths include the same safe bail-out: if the repair cannot fully reconcile the block count, the translated content is returned unchanged.
+
+---
+
+## [1.1.3] — 2026-05-16
+
+### Fixed
+
+* **Accordion blocks break after translation — items placed outside the container** — the model correctly maintains the block comment pairs (`<!-- wp:accordion-item -->…<!-- /wp:accordion-item -->`) but loses track of the HTML tag nesting inside the container block, placing the parent's closing `</div>` too early and leaving the remaining items (especially the last) as top-level siblings instead of staying nested. Fixed with two layers:
+
+  1. **Prompt rule** — an explicit instruction was added to `translation.txt`: *"Do not output a container's closing HTML tag until every one of its inner blocks is complete."* This reduces the failure rate at the model level.
+
+  2. **PHP structural repair** — `BlockTextExtractor::repair_structure()` is called on the translated content after attribute reinsertion. It parses both original and translated content with `parse_blocks()`, walks both block trees in parallel, and when a container is found to have fewer `innerBlocks` than the original, it looks at the immediately following top-level sibling blocks and absorbs any whose `blockName` matches the expected inner block type. The container's `innerContent` array is updated with matching null slots so `serialize_blocks()` places the re-nested blocks inside the container's HTML at the correct position. The repair is skipped and the translated content returned unchanged if block counts still don't reconcile (safe bail-out). The repair runs before the `<br>` strip so the block tree is intact throughout.
+
+### Added
+
+* `BlockTextExtractor::repair_structure(string $translated, string $original): string` — structural repair method (public static).
+* `BlockTextExtractor::reattach_escaped_blocks()` — recursive parallel-walk implementation (private static).
+* `BlockTextExtractor::named_blocks()` — filters freeform whitespace fragments from `parse_blocks()` output (private static).
+
+---
+
+## [1.1.2] — 2026-05-16
+
+### Fixed
+
+* **"Apply to Editor" button shows "Applied ✓" even when the translation was not applied** — the `editPost()` dispatch was fire-and-forget (no `await`) and the entire handler had no error handling, so the button always reported success regardless of whether the Gutenberg store actually accepted the content. Fixed with three changes: (1) the dispatch is now `await`ed; (2) after dispatching, `getEditedPostAttribute('content')` is read back and compared against both the pre-dispatch snapshot and the content we sent — if neither condition passes the handler throws; (3) the whole block is wrapped in `try/catch` so any failure (thrown exception, store rejection, or verification mismatch) restores the button to its original enabled state and shows an inline error message below the button row. The error clears automatically on the next Apply attempt.
+
+### Changed
+
+* `assets/admin.js` — Apply handler refactored into a guarded async flow with `showApplyError` / `clearApplyError` helpers.
+* `assets/admin.css` — `.wpenhance-ai-apply-error` rule added for the inline error notice.
+
+---
+
 ## [1.1.1] — 2026-05-16
 
 ### Fixed
