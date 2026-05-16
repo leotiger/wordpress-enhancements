@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 // =========================================================
 require_once __DIR__ . '/includes/class-language-router.php';
 require_once __DIR__ . '/includes/class-lsflr-switcher.php';
+require_once __DIR__ . '/includes/class-lsflr-link-fixer.php';
 
 // =========================================================
 // BOOT
@@ -22,6 +23,7 @@ require_once __DIR__ . '/includes/class-lsflr-switcher.php';
 // =========================================================
 $language_router  = Language_Router::get_instance();
 $lsflr_switcher   = new LSFLR_Switcher( $language_router );
+$lsflr_link_fixer = new LSFLR_Link_Fixer( $language_router );
 
 // =========================================================
 // THEME / TEMPLATE COMPATIBILITY WRAPPERS
