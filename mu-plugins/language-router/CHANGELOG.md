@@ -5,6 +5,40 @@ Earlier history is preserved in the root `CHANGELOG.md` of the procedural versio
 
 ---
 
+## [1.3.3] - 2026-05-16
+
+### Added
+
+- **Internal Link Fixer (`LSFLR_Link_Fixer`)** — a new admin-only class that scans
+  translated posts and pages for internal links that still point to the source-language
+  version of a page and offers to repoint them to the correct language equivalent.
+
+  The fixer surfaces as a **Fix Links (XX)** button in the posts/pages list toolbar,
+  visible only when a language filter is active. Clicking it opens a modal overlay with:
+  - A dry-run scan of all published content in that language.
+  - A table showing each affected post, and the exact from/to URL for every link that
+    can be repointed using the TRID translation group.
+  - Per-row **Fix** buttons and a **Fix All** action (sequential to avoid DB contention).
+
+  The fix is content-only: `handle_save_post` is temporarily unhooked around
+  `wp_update_post` so that TRID assignments, language meta, and translation timestamps
+  are not disturbed. Links with no known translation in the target language are left
+  untouched.
+
+### Changed
+
+- **Minimum PHP version raised from 7.4 to 8.0.** The codebase now uses `str_starts_with()`
+  and `str_contains()` throughout in place of `strpos() === 0` and `strpos() !== false`.
+  Affected locations:
+  - `class-language-router.php`: locale prefix check in `locale_from_lang()`, both
+    cookie hyphen checks in `detect_lang_safe()` / `detect_lang()`, `name="lang"`
+    presence check in `fix_search_form()`, template slug prefix guards in
+    `render_template_meta_box()`.
+  - `class-lsflr-link-fixer.php`: all three internal-URL prefix checks.
+- `Requires PHP: 8.0` added to the plugin file header.
+
+---
+
 ## [1.3.2] - 2026-05-15
 
 ### Fixed

@@ -61,7 +61,7 @@ class LSFLR_Link_Fixer {
 		foreach ( $matches[1] as $url ) {
 			$url = trim( $url );
 
-			if ( strpos( $url, $home ) === 0 ) {
+			if ( str_starts_with( $url, $home ) ) {
 				// Already absolute internal.
 				$links[] = $url;
 				continue;
@@ -93,7 +93,7 @@ class LSFLR_Link_Fixer {
 		// Strip a recognised language prefix if present.
 		foreach ( $this->router->languages() as $lang ) {
 			$prefix = $home . $lang . '/';
-			if ( strpos( $url, $prefix ) === 0 ) {
+			if ( str_starts_with( $url, $prefix ) ) {
 				$url = $home . substr( $url, strlen( $prefix ) );
 				break;
 			}
@@ -136,7 +136,7 @@ class LSFLR_Link_Fixer {
 		foreach ( $this->extract_internal_links( $post->post_content ) as $url ) {
 
 			// Skip if the href already carries the target-language prefix.
-			if ( strpos( $url, $target_prefix ) === 0 ) {
+			if ( str_starts_with( $url, $target_prefix ) ) {
 				continue;
 			}
 

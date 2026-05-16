@@ -32,7 +32,7 @@ class Language_Router {
 	// CONSTANTS / VERSION
 	// =========================================================
 
-	const ROUTER_VERSION = '1.3.2';
+	const ROUTER_VERSION = '1.3.3';
 
 	// =========================================================
 	// INSTANCE CACHES  (avoids repeated filesystem + filter calls)
@@ -321,7 +321,7 @@ class Language_Router {
 		$known_locales = array_merge( get_available_languages(), $this->discover_plugin_locales() );
 		foreach ( $known_locales as $locale ) {
 			$locale_l = strtolower( $locale );
-			if ( $locale_l === $lang || strpos( $locale_l, $lang . '_' ) === 0 ) {
+			if ( $locale_l === $lang || str_starts_with( $locale_l, $lang . '_' ) ) {
 				return $cache[$lang] = $locale;
 			}
 		}
@@ -395,7 +395,7 @@ class Language_Router {
 		// 3. Cookie
 		if ( ! empty( $_COOKIE['my_lang'] ) ) {
 			$cookie_lang = strtolower( trim( $_COOKIE['my_lang'] ) );
-			if ( strpos( $cookie_lang, '-' ) !== false ) {
+			if ( str_contains( $cookie_lang, '-' ) ) {
 				$cookie_lang = substr( $cookie_lang, 0, 2 );
 			}
 			if ( in_array( $cookie_lang, $langs, true ) ) return $cookie_lang;
@@ -419,7 +419,7 @@ class Language_Router {
 		// 2. Cookie
 		if ( ! empty( $_COOKIE['my_lang'] ) ) {
 			$cookie_lang = strtolower( trim( $_COOKIE['my_lang'] ) );
-			if ( strpos( $cookie_lang, '-' ) !== false ) {
+			if ( str_contains( $cookie_lang, '-' ) ) {
 				$cookie_lang = substr( $cookie_lang, 0, 2 );
 			}
 			if ( in_array( $cookie_lang, $langs, true ) ) return $cookie_lang;
@@ -1299,7 +1299,7 @@ class Language_Router {
 
 		foreach ( $templates as $tpl ) {
 			$slug = $tpl->post_name;
-			if ( strpos( $slug, 'page-' ) !== 0 && strpos( $slug, 'single-' ) !== 0 ) continue;
+			if ( ! str_starts_with( $slug, 'page-' ) && ! str_starts_with( $slug, 'single-' ) ) continue;
 			echo '<option value="' . esc_attr( $slug ) . '" ' . selected( $current, $slug, false ) . '>' . esc_html( $slug ) . '</option>';
 		}
 
@@ -1623,7 +1623,7 @@ class Language_Router {
 
 		$block_content = preg_replace( '/<form[^>]*action="[^"]*"/', '<form action="/"', $block_content );
 
-		if ( strpos( $block_content, 'name="lang"' ) === false ) {
+		if ( ! str_contains( $block_content, 'name="lang"' ) ) {
 			$hidden        = '<input type="hidden" name="lang" value="' . esc_attr( MY_LANG ) . '">';
 			$block_content = preg_replace( '/<\/form>/', $hidden . '</form>', $block_content, 1 );
 		}

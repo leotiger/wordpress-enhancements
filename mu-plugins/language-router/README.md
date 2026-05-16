@@ -1,4 +1,4 @@
-# Language Router for WordPress — Class-based refactor (v1.3.2)
+# Language Router for WordPress — Class-based refactor (v1.3.3)
 
 A drop-in replacement for the procedural Language Router plugin, rewritten as two collaborating classes. All `my_*` wrapper functions are preserved so existing theme code keeps working without changes.
 
@@ -11,7 +11,8 @@ class-based/
 ├── language-router.php          ← Entry point: boots classes, defines MY_LANG, registers wrappers
 ├── includes/
 │   ├── class-language-router.php   ← Core singleton: routing, translation, admin, SEO, search
-│   └── class-lsflr-switcher.php    ← Language switcher block (injected dependency)
+│   ├── class-lsflr-switcher.php    ← Language switcher block (injected dependency)
+│   └── class-lsflr-link-fixer.php  ← Admin link fixer: scan & repoint internal links per language
 └── assets/
     └── lsflr.css                ← Switcher styles
 ```
@@ -34,13 +35,18 @@ Instance-level caches (`$cached_languages`, `$cached_source_language`) avoid red
 
 Receives a `Language_Router` instance via its constructor. Has no static state. Registers its own hooks in `register_hooks()`.
 
+### `LSFLR_Link_Fixer` — admin-only utility class
+
+Also injected with `Language_Router`. Adds a **Fix Links** button to the posts/pages list whenever a language filter is active. Clicking it opens a modal overlay with a dry-run scan of all internal links in that language's content that still point to a different language's version of the same page. Editors can fix posts individually or all at once. No changes to public-facing output.
+
 ### Entry point (`language-router.php`)
 
-Boots both objects and then declares thin wrapper functions that delegate to the instances:
+Boots all three objects and then declares thin wrapper functions that delegate to the instances:
 
 ```php
-$language_router = Language_Router::get_instance();
-$lsflr_switcher  = new LSFLR_Switcher( $language_router );
+$language_router  = Language_Router::get_instance();
+$lsflr_switcher   = new LSFLR_Switcher( $language_router );
+$lsflr_link_fixer = new LSFLR_Link_Fixer( $language_router );
 ```
 
 Theme templates can call `my_source_language()`, `my_get_translations()`, etc. exactly as before — each wrapper just forwards to the class method.
@@ -233,6 +239,16 @@ The **Translations** sidebar meta box shows each language's linked post and an *
 
 Quick Edit includes a language selector for posts, pages, and navigation items. The parent page dropdown in Quick Edit is filtered server-side to only show pages in the active language.
 
+### Link Fixer
+
+When the post list is filtered by language, a **Fix Links (XX)** button appears in the toolbar. Clicking it opens a modal overlay that:
+
+1. Scans all published posts and pages in that language for internal links that still point to a different language's version of the same page (a common result of importing source content).
+2. Shows a dry-run table — each affected post, each link that would change, from/to path.
+3. Lets editors fix individual posts or all at once with sequential AJAX calls.
+
+The fixer uses the TRID group to find the correct language equivalent for every linked post. Links with no known translation are left untouched. The fix updates only `post_content`; language metadata, TRID assignments, and translation timestamps are not affected.
+
 ---
 
 ## WordPress language setup
@@ -403,7 +419,7 @@ This version is intended as a **must-use plugin** — a drop-in replacement for 
 ## Requirements
 
 - WordPress 6.3 or later (block theme / FSE recommended)
-- PHP 8.0 or later (typed properties and union types are used throughout)
+- PHP 8.0 or later (`str_starts_with()` and `str_contains()` are used throughout; typed class properties require 7.4+ but 8.0 is the declared minimum)
 - Permalink structure set to anything other than plain
 
 ---
