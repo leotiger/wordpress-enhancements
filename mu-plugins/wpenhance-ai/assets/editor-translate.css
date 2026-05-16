@@ -124,6 +124,13 @@
     box-shadow:   0 0 0 1px #0073aa;
 }
 
+.wpenhance-ai-ep__lang-hint {
+    font-size:  11px;
+    color:      #646970;
+    font-style: italic;
+    margin-top: -4px;
+}
+
 .wpenhance-ai-ep__textarea {
     width:         100%;
     padding:       7px 9px;
@@ -154,6 +161,12 @@
 }
 
 /* ── Result area ─────────────────────────────────────────────────────────── */
+
+/* Explicit override: display:flex would otherwise win over the browser's
+   built-in [hidden]{display:none} because author styles beat user-agent. */
+.wpenhance-ai-ep__result[hidden] {
+    display: none;
+}
 
 .wpenhance-ai-ep__result {
     padding:        0 14px 14px;

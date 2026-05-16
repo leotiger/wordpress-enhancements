@@ -38,6 +38,17 @@ class MetaBox {
             'admin_enqueue_scripts',
             [self::class, 'enqueue_editor_plugin_for_site_editor']
         );
+
+        // Block toolbar Translate / Revise button — loaded alongside the editor
+        // plugin so it is available in both the post editor and the FSE editor.
+        add_action(
+            'enqueue_block_editor_assets',
+            [self::class, 'enqueue_block_action']
+        );
+        add_action(
+            'admin_enqueue_scripts',
+            [self::class, 'enqueue_block_action_for_site_editor']
+        );
     }
 
     public static function enqueue(string $hook): void {
@@ -95,7 +106,7 @@ class MetaBox {
             'wpenhance-ai-editor',
             WPENHANCE_AI_URL . '/assets/editor-translate.css',
             ['wp-components'],
-            '1.1.0'
+            '1.2.0'
         );
 
         // Pure vanilla JS — no WP React/component packages needed.
@@ -105,7 +116,7 @@ class MetaBox {
             'wpenhance-ai-editor',
             WPENHANCE_AI_URL . '/assets/editor-translate.js',
             $editor_deps,
-            '1.1.0',
+            '1.2.0',
             true
         );
 
@@ -113,9 +124,10 @@ class MetaBox {
             'wpenhance-ai-editor',
             'WPEnhanceAIEditor',
             [
-                'restUrl'   => rest_url('wpenhance-ai/v1'),
-                'nonce'     => wp_create_nonce('wp_rest'),
-                'languages' => Translation::get_languages(),
+                'restUrl'      => rest_url('wpenhance-ai/v1'),
+                'nonce'        => wp_create_nonce('wp_rest'),
+                'languages'    => Translation::get_languages(),
+                'postLanguage' => Translation::detect_post_language(),
             ]
         );
     }
@@ -142,6 +154,63 @@ class MetaBox {
         }
 
         self::enqueue_editor_plugin();
+    }
+
+    /**
+     * Enqueue the block-toolbar Translate / Revise button and its popover.
+     *
+     * Depends on the WordPress block-editor packages so that wp.hooks,
+     * wp.element, wp.components, and wp.blockEditor are available when
+     * our script runs.
+     */
+    public static function enqueue_block_action(): void {
+
+        if (!current_user_can('edit_posts')) {
+            return;
+        }
+
+        wp_enqueue_style(
+            'wpenhance-ai-block-action',
+            WPENHANCE_AI_URL . '/assets/block-action.css',
+            ['wp-components'],
+            '1.0.3'
+        );
+
+        wp_enqueue_script(
+            'wpenhance-ai-block-action',
+            WPENHANCE_AI_URL . '/assets/block-action.js',
+            ['wp-hooks', 'wp-element', 'wp-components', 'wp-block-editor', 'wp-data'],
+            '1.0.3',
+            true
+        );
+
+        wp_localize_script(
+            'wpenhance-ai-block-action',
+            'WPEnhanceAIBlockAction',
+            [
+                'restUrl'      => rest_url('wpenhance-ai/v1'),
+                'nonce'        => wp_create_nonce('wp_rest'),
+                'languages'    => Translation::get_languages(),
+                'postLanguage' => Translation::detect_post_language(),
+            ]
+        );
+    }
+
+    /**
+     * Hard-guarantee the block-action script loads on site-editor.php via
+     * admin_enqueue_scripts when enqueue_block_editor_assets may not fire.
+     */
+    public static function enqueue_block_action_for_site_editor(string $hook): void {
+
+        if ($hook !== 'site-editor.php') {
+            return;
+        }
+
+        if (wp_script_is('wpenhance-ai-block-action', 'enqueued')) {
+            return;
+        }
+
+        self::enqueue_block_action();
     }
 
     public static function register(): void {

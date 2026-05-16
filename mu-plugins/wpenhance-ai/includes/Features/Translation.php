@@ -47,6 +47,104 @@ class Translation implements FeatureInterface {
         return self::LANGUAGES;
     }
 
+    /**
+     * Detect the language of the post or page currently being viewed or edited
+     * and return its code if it matches one of our supported target languages.
+     *
+     * Detection is attempted in priority order:
+     *
+     *   1. _lang post meta — our own language marker written by the meta box.
+     *      Most reliable: it was explicitly set by the user within this plugin.
+     *
+     *   2. Polylang — pll_get_post_language( $post_id, 'slug' ) returns the
+     *      language slug (e.g. "fr") when the Polylang plugin is active.
+     *
+     *   3. WPML — the wpml_post_language_details filter returns an array with
+     *      a 'language_code' key when WPML is installed and active.
+     *
+     *   4. Site locale — get_locale() (e.g. "de_DE") is trimmed to its 2-letter
+     *      ISO 639-1 prefix.  Used as a fallback for single-language sites.
+     *
+     * Returns null when no post context exists (e.g. a generic admin screen or
+     * the FSE template editor) or when the detected code is not in our list.
+     *
+     * @return string|null  Language code (e.g. "de") or null.
+     */
+    public static function detect_post_language(): ?string {
+
+        // ── Resolve the current post ID ───────────────────────────────────────
+
+        $post_id = null;
+
+        if ( is_admin() ) {
+
+            // get_current_screen() is available during admin_enqueue_scripts
+            // and enqueue_block_editor_assets.
+            $screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+
+            // Screen base 'post' covers all post types in both the classic
+            // editor and Gutenberg (posts, pages, custom post types).
+            if ( $screen && $screen->base === 'post' ) {
+                $post_id = (int) ( $_GET['post']     ?? 0 )
+                        ?: (int) ( $_POST['post_ID'] ?? 0 );
+            }
+
+        } else {
+
+            // Front-end admin bar: use the singular queried object.
+            if ( is_singular() ) {
+                $post_id = (int) get_queried_object_id();
+            }
+        }
+
+        if ( ! $post_id ) {
+            return null;
+        }
+
+        // ── 1. Our own _lang post meta ────────────────────────────────────────
+
+        $lang = (string) get_post_meta( $post_id, '_lang', true );
+
+        if ( $lang !== '' && array_key_exists( $lang, self::LANGUAGES ) ) {
+            return $lang;
+        }
+
+        // ── 2. Polylang ───────────────────────────────────────────────────────
+
+        if ( function_exists( 'pll_get_post_language' ) ) {
+
+            $lang = (string) pll_get_post_language( $post_id, 'slug' );
+
+            if ( $lang !== '' && array_key_exists( $lang, self::LANGUAGES ) ) {
+                return $lang;
+            }
+        }
+
+        // ── 3. WPML ───────────────────────────────────────────────────────────
+
+        $wpml = apply_filters( 'wpml_post_language_details', null, $post_id );
+
+        if ( is_array( $wpml ) && ! empty( $wpml['language_code'] ) ) {
+
+            $lang = (string) $wpml['language_code'];
+
+            if ( array_key_exists( $lang, self::LANGUAGES ) ) {
+                return $lang;
+            }
+        }
+
+        // ── 4. Site locale ────────────────────────────────────────────────────
+        // Trim "de_DE" → "de", "en_US" → "en", etc.
+
+        $code = strtolower( substr( get_locale(), 0, 2 ) );
+
+        if ( array_key_exists( $code, self::LANGUAGES ) ) {
+            return $code;
+        }
+
+        return null;
+    }
+
     public function get_key(): string {
 
         return 'translation';
@@ -371,16 +469,14 @@ class Translation implements FeatureInterface {
             $post->post_content
         );
 
-        // ── Strip stray <br> tags ─────────────────────────────────────────────
-        // Models reliably hallucinate <br> tags between blocks to "preserve"
-        // newlines, breaking the Gutenberg block parser.  The prompt already
-        // instructs the model to preserve all HTML exactly as-is, so any <br>
-        // tag it outputs that was legitimately in the original should survive
-        // that instruction without our help.  Stripping all <br> tags here
-        // acts as an unconditional safety net: the worst outcome is losing a
-        // soft line break (Shift+Enter) inside a paragraph — a trivial manual
-        // fix — whereas leaving a stray <br> breaks block structure entirely.
-        $translated_content = preg_replace('/<br[\s\/]*>/i', '', $translated_content);
+        // ── Strip stray inter-block <br> tags ────────────────────────────────
+        // Models reliably hallucinate <br> tags *between* block-comment
+        // delimiters to "preserve" the appearance of newlines, breaking the
+        // Gutenberg block parser.  strip_interblock_br() removes <br> only
+        // from the whitespace-only connector zones between block comments
+        // (after <!-- /wp:... --> or <!-- wp:... /-->) and leaves <br> tags
+        // that appear inside block HTML (e.g. soft line breaks in <p>) intact.
+        $translated_content = BlockTextExtractor::strip_interblock_br($translated_content);
 
         $payload = [
             'output'   => $translated_content,

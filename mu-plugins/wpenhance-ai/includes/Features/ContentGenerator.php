@@ -5,6 +5,7 @@ namespace WPEnhance\AI\Features;
 use WPEnhance\AI\Features\Contracts\FeatureInterface;
 use WPEnhance\AI\Providers\ProviderFactory;
 use WPEnhance\AI\Providers\WorkerConfig;
+use WPEnhance\AI\Core\BlockTextExtractor;
 use WPEnhance\AI\Core\CacheStore;
 use WPEnhance\AI\Core\Config;
 
@@ -207,9 +208,11 @@ class ContentGenerator implements FeatureInterface {
             ];
         }
 
-        // Strip any <br> tags the model added — clean Gutenberg markup uses
-        // block structure for all separations; <br> is not expected in output.
-        $output = preg_replace('/<br[\s\/]*>/i', '', trim($result));
+        // Strip <br> tags the model hallucinated between Gutenberg block
+        // boundaries.  Uses the targeted inter-block strip so that any
+        // intentional soft line breaks inside <p> or similar elements are
+        // preserved rather than silently removed.
+        $output = BlockTextExtractor::strip_interblock_br(trim($result));
 
         $payload = [
             'output'       => $output,

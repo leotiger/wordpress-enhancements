@@ -57,14 +57,14 @@ class AdminToolbar {
             'wpenhance-ai-toolbar',
             WPENHANCE_AI_URL . '/assets/toolbar-translate.css',
             [],
-            '1.1.0'
+            '1.2.1'
         );
 
         wp_enqueue_script(
             'wpenhance-ai-toolbar',
             WPENHANCE_AI_URL . '/assets/toolbar-translate.js',
             [],
-            '1.1.0',
+            '1.2.1',
             true   // load in footer
         );
 
@@ -72,10 +72,12 @@ class AdminToolbar {
             'wpenhance-ai-toolbar',
             'WPEnhanceAIToolbar',
             [
-                'restUrl'   => rest_url('wpenhance-ai/v1'),
-                'nonce'     => wp_create_nonce('wp_rest'),
-                'languages' => Translation::get_languages(),
+                'restUrl'      => rest_url('wpenhance-ai/v1'),
+                'nonce'        => wp_create_nonce('wp_rest'),
+                'languages'    => Translation::get_languages(),
+                'postLanguage' => Translation::detect_post_language(),
             ]
         );
     }
+
 }

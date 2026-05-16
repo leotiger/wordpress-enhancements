@@ -155,6 +155,7 @@ function buildPopover() {
                 id="wpenhance-ai-tp-lang"
                 class="wpenhance-ai-tp__lang"
             >${options}</select>
+            <span class="wpenhance-ai-tp__lang-hint" hidden></span>
 
             <label class="wpenhance-ai-tp__label" for="wpenhance-ai-tp-input">
                 Text to translate
@@ -201,9 +202,72 @@ function buildPopover() {
    Open / close helpers
    ───────────────────────────────────────────────────────────────────────────── */
 
+/**
+ * localStorage key used to persist the user's last chosen language across
+ * page loads.  Scoped to this plugin to avoid collisions with other scripts.
+ */
+const LANG_STORAGE_KEY = 'wpenhance_ai_last_lang';
+
+/**
+ * Initialise the language <select> on the very first popover open.
+ *
+ * Priority order:
+ *   1. Post language detected by PHP (WPEnhanceAIToolbar.postLanguage) —
+ *      most specific: matches the post/page currently being edited or viewed.
+ *   2. Last language persisted in localStorage — used when there is no post
+ *      context (e.g. a generic admin screen) so the user's habitual target
+ *      language is pre-selected without them having to pick it every time.
+ *   3. Default <select> value — whatever the first <option> is.
+ *
+ * A change listener is attached once here to persist every subsequent manual
+ * selection to localStorage and to dismiss the auto-detected hint.
+ */
+function initLanguageSelect(popover) {
+
+    const langSelect = popover.querySelector('.wpenhance-ai-tp__lang');
+    const langHint   = popover.querySelector('.wpenhance-ai-tp__lang-hint');
+
+    if (!langSelect) return;
+
+    const hasOption = (code) =>
+        !!langSelect.querySelector(`option[value="${escAttr(String(code))}"]`);
+
+    const detectedCode  = WPEnhanceAIToolbar.postLanguage || null;
+    const persistedCode = localStorage.getItem(LANG_STORAGE_KEY);
+
+    if (detectedCode && hasOption(detectedCode)) {
+
+        // Post-context wins — show the "detected" hint.
+        langSelect.value = detectedCode;
+
+        if (langHint) {
+            langHint.textContent = '↑ Detected from current post';
+            langHint.hidden      = false;
+        }
+
+    } else if (persistedCode && hasOption(persistedCode)) {
+
+        // Fallback to last persisted choice — no hint needed.
+        langSelect.value = persistedCode;
+    }
+
+    // Persist every manual change and dismiss the detected hint.
+    langSelect.addEventListener('change', () => {
+        localStorage.setItem(LANG_STORAGE_KEY, langSelect.value);
+        if (langHint) langHint.hidden = true;
+    });
+}
+
 function openPopover(popover, anchorEl) {
 
-    // Pre-fill with selected text (if any) from the current page.
+    // ── Apply language preference (first open only) ───────────────────────────
+    if (!popover.dataset.langInitialised) {
+        initLanguageSelect(popover);
+        popover.dataset.langInitialised = '1';
+    }
+
+    // ── Pre-fill with selected text (if any) from the current page ───────────
+
     const selection = window.getSelection
         ? window.getSelection().toString().trim()
         : '';

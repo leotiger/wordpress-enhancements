@@ -2,12 +2,45 @@
 
 namespace WPEnhance\AI\REST;
 
+use WPEnhance\AI\Core\BlockTextExtractor;
+use WPEnhance\AI\Core\Config;
 use WPEnhance\AI\Features\Registry;
 use WPEnhance\AI\Features\Translation;
+use WPEnhance\AI\Providers\ProviderFactory;
+use WPEnhance\AI\Providers\WorkerConfig;
 
 defined('ABSPATH') || exit;
 
 class FeatureController {
+
+    /**
+     * Supported block revision types.
+     * Key   → sent by JS as revision_type param.
+     * label → human-readable label returned in the response.
+     * instruction → injected into the prompt template.
+     */
+    private const REVISION_TYPES = [
+        'improve' => [
+            'label'       => 'Improved',
+            'instruction' => 'Improve the writing quality: fix grammar errors, enhance clarity, improve sentence flow, and polish the style. Preserve the original meaning and tone.',
+        ],
+        'formal'  => [
+            'label'       => 'Made Formal',
+            'instruction' => 'Rewrite in a formal, professional register. Preserve the meaning but use more formal vocabulary and sentence structure.',
+        ],
+        'casual'  => [
+            'label'       => 'Made Casual',
+            'instruction' => 'Rewrite in a casual, conversational style. Keep the meaning but make it warmer and more approachable.',
+        ],
+        'concise' => [
+            'label'       => 'Made Concise',
+            'instruction' => 'Make the text more concise. Remove redundancy and wordiness while keeping all key information intact.',
+        ],
+        'expand'  => [
+            'label'       => 'Expanded',
+            'instruction' => 'Expand the text with more detail and elaboration. Develop the ideas further while maintaining the original meaning and direction.',
+        ],
+    ];
 
     public static function init(): void {
 
@@ -53,6 +86,22 @@ class FeatureController {
             [
                 'methods'             => 'POST',
                 'callback'            => [self::class, 'run_translate_chunk'],
+                'permission_callback' => function () {
+                    return current_user_can('edit_posts');
+                },
+            ]
+        );
+
+        // ── Block revise endpoint ─────────────────────────────────────────────
+        // Revises a single block's HTML content (improve, formal, casual,
+        // concise, expand) without requiring a post ID.
+        // Used by the block toolbar Translate / Revise popover.
+        register_rest_route(
+            'wpenhance-ai/v1',
+            '/revise-block',
+            [
+                'methods'             => 'POST',
+                'callback'            => [self::class, 'run_revise_block'],
                 'permission_callback' => function () {
                     return current_user_can('edit_posts');
                 },
@@ -137,16 +186,103 @@ class FeatureController {
     }
 
     /**
-     * Remove every <br> variant from the 'output' field of our feature
-     * responses right before WordPress echoes the REST reply.
+     * Revise a single block's HTML content via the block-toolbar popover.
+     *
+     * Accepts:
+     *   - revision_type  (string)  One of the REVISION_TYPES keys (e.g. "improve")
+     *   - chunk_text     (string)  The block's HTML content to revise
+     *
+     * Returns:
+     *   - success        (bool)
+     *   - output         (string)  Revised HTML content
+     *   - revision_label (string)  Human-readable label (e.g. "Improved")
+     *   - revision_type  (string)  Echo of the requested type
+     *
+     * @param  \WP_REST_Request $request
+     * @return \WP_REST_Response|\WP_Error
+     */
+    public static function run_revise_block(\WP_REST_Request $request) {
+
+        $params        = (array) ($request->get_json_params() ?? []);
+        $revision_type = sanitize_key($params['revision_type'] ?? 'improve');
+        // wp_kses_post preserves safe inline HTML (strong, em, a, br, code, …)
+        // so the AI can see and honour the markup.  sanitize_textarea_field would
+        // strip all tags — destroying the block's HTML structure.
+        $chunk_text    = wp_kses_post($params['chunk_text'] ?? '');
+
+        if (!array_key_exists($revision_type, self::REVISION_TYPES)) {
+            return new \WP_Error(
+                'invalid_revision_type',
+                'Invalid revision type.',
+                ['status' => 400]
+            );
+        }
+
+        if (trim($chunk_text) === '') {
+            return new \WP_Error(
+                'missing_content',
+                'Content is required.',
+                ['status' => 400]
+            );
+        }
+
+        $type_config  = self::REVISION_TYPES[$revision_type];
+        $prompt_path  = WPENHANCE_AI_PATH . '/templates/prompts/block-revision.txt';
+
+        if (!file_exists($prompt_path)) {
+            return new \WP_Error(
+                'missing_prompt',
+                'Prompt template not found.',
+                ['status' => 500]
+            );
+        }
+
+        $prompt = str_replace(
+            ['{{instruction}}', '{{content}}'],
+            [$type_config['instruction'], mb_substr(trim($chunk_text), 0, 8000)],
+            file_get_contents($prompt_path)
+        );
+
+        $provider = ProviderFactory::make(
+            new WorkerConfig(
+                model:       Config::model('quality'),
+                max_tokens:  2048,
+                temperature: 0.4,
+            )
+        );
+
+        $result = $provider->chat(
+            [['role' => 'user', 'content' => $prompt]]
+        );
+
+        if (empty($result)) {
+            return new \WP_Error(
+                'revision_failed',
+                'Revision failed. Please try again.',
+                ['status' => 500]
+            );
+        }
+
+        return rest_ensure_response([
+            'success'        => true,
+            'output'         => trim($result),
+            'revision_label' => $type_config['label'],
+            'revision_type'  => $revision_type,
+        ]);
+    }
+
+    /**
+     * Remove <br> tags that wpautop injected between Gutenberg block
+     * boundaries in the 'output' field of our feature REST responses.
      *
      * Running at priority 999 guarantees this executes after wpautop
      * (priority 10) and any other plugin that hooks into rest_pre_echo_response
-     * to apply the_content filters.  wpautop converts newlines between
-     * Gutenberg block comments and their inner HTML to <br /> tags, which
-     * breaks the block parser.  Stripping unconditionally is safe: the worst
-     * outcome is losing a soft line-break (Shift+Enter) inside a paragraph —
-     * a trivial manual fix — whereas a stray <br> breaks block structure.
+     * to apply the_content filters.  wpautop converts newlines between block
+     * comment delimiters to <br /> tags, breaking the Gutenberg block parser.
+     *
+     * Uses BlockTextExtractor::strip_interblock_br() so that only inter-block
+     * <br> tags are removed.  Legitimate soft line breaks (Shift+Enter) inside
+     * block HTML — e.g. <p>Line one<br>Line two</p> — are left untouched.
      *
      * @param mixed            $result  Raw response data (array or scalar).
      * @param \WP_REST_Server  $server  REST server instance (unused).
@@ -165,7 +301,7 @@ class FeatureController {
         }
 
         if (isset($result['output']) && is_string($result['output'])) {
-            $result['output'] = preg_replace('/<br[^>]*>/i', '', $result['output']);
+            $result['output'] = BlockTextExtractor::strip_interblock_br($result['output']);
         }
 
         return $result;

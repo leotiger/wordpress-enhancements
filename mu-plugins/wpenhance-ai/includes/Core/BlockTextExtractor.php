@@ -349,6 +349,82 @@ class BlockTextExtractor {
         );
     }
 
+    // ── Inter-block <br> stripping ────────────────────────────────────────────
+
+    /**
+     * Remove <br> tags the AI model hallucinated between Gutenberg block
+     * boundaries, while leaving legitimate <br> tags inside block HTML intact.
+     *
+     * Background
+     * ----------
+     * Models sometimes insert <br> tags in the whitespace-only "connector"
+     * zones that separate block-comment delimiters — e.g.
+     *
+     *   <!-- /wp:paragraph -->
+     *   <br>                        ← hallucinated, breaks block parser
+     *   <!-- wp:paragraph -->
+     *
+     * A blanket strip of every <br> in the document also removes valid soft
+     * line breaks (Shift+Enter) that live inside block HTML, such as:
+     *
+     *   <!-- wp:paragraph -->
+     *   <p>First line<br>Second line</p>   ← <br> here is intentional
+     *   <!-- /wp:paragraph -->
+     *
+     * Strategy
+     * --------
+     * Split the content on Gutenberg block comments, keeping the delimiters.
+     * Odd-indexed parts are the comment tokens; even-indexed parts are the
+     * text between them.  Strip <br> only from even-indexed segments that
+     * follow a *closing* comment (<!-- /wp:... -->) or a *void/self-closing*
+     * comment (<!-- wp:... /-->).  Segments that follow an *opening* comment
+     * (<!-- wp:... -->) contain the block's inner HTML and are left untouched.
+     *
+     * @param  string $content  Raw Gutenberg post content.
+     * @return string           Content with inter-block <br> tags removed.
+     */
+    public static function strip_interblock_br(string $content): string {
+
+        // Split on block comment tokens, capturing the delimiters so they
+        // appear as odd-indexed elements in the resulting array.
+        $parts = preg_split(
+            '/(<!--\s*\/?wp:[^>]*?>)/i',
+            $content,
+            -1,
+            PREG_SPLIT_DELIM_CAPTURE
+        );
+
+        if ($parts === false) {
+            return $content;
+        }
+
+        // The very first segment (before any block comment) is an inter-block
+        // zone — strip <br> there too.
+        $strip = true;
+
+        foreach ($parts as $i => &$part) {
+
+            if ($i % 2 === 1) {
+                // Block-comment delimiter: decide whether the NEXT segment is
+                // an inter-block zone (safe to strip) or block HTML (keep).
+                //
+                // Closing:      <!-- /wp:... -->   → next is inter-block → strip
+                // Void:         <!-- wp:... /-->   → next is inter-block → strip
+                // Opening:      <!-- wp:... -->    → next is block HTML  → keep
+                $strip = (bool) preg_match('/<!--\s*\/wp:|\/-->/i', $part);
+
+            } else {
+                // Content segment: conditionally strip <br> tags.
+                if ($strip) {
+                    $part = preg_replace('/<br[\s\/]*>/i', '', $part);
+                }
+            }
+        }
+        unset($part);
+
+        return implode('', $parts);
+    }
+
     // ── Block attribute walk ──────────────────────────────────────────────────
 
     /**

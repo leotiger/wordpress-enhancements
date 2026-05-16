@@ -188,6 +188,7 @@
                     Target Language
                 </label>
                 <select id="wpai-ep-lang" class="wpenhance-ai-ep__lang">${ options }</select>
+                <span class="wpenhance-ai-ep__lang-hint" hidden></span>
 
                 <label class="wpenhance-ai-ep__label" for="wpai-ep-input">
                     Text to translate
@@ -292,9 +293,70 @@
         } );
     }
 
+    /* ── Language preference (detection + persistence) ────────────────────── */
+
+    /**
+     * localStorage key shared with toolbar-translate.js so both popovers
+     * remember — and restore — the same last-used language.
+     */
+    const LANG_STORAGE_KEY = 'wpenhance_ai_last_lang';
+
+    /**
+     * Set the language <select> on the very first popover open.
+     *
+     * Priority:
+     *   1. Post language detected by PHP (WPEnhanceAIEditor.postLanguage) —
+     *      most specific: the language of the post/page being edited.
+     *   2. Last language persisted in localStorage — used when there is no
+     *      post context (e.g. the FSE template editor) so the user's habitual
+     *      target language is pre-selected automatically.
+     *   3. Default <select> value — whatever the first <option> is.
+     *
+     * Every subsequent manual change is written to localStorage immediately.
+     */
+    function initLanguageSelect( popover ) {
+
+        const langSelect = popover.querySelector( '.wpenhance-ai-ep__lang' );
+        const langHint   = popover.querySelector( '.wpenhance-ai-ep__lang-hint' );
+
+        if ( !langSelect ) return;
+
+        const hasOption = ( code ) =>
+            !!langSelect.querySelector( `option[value="${ escAttr( String( code ) ) }"]` );
+
+        const detectedCode  = WPEnhanceAIEditor.postLanguage || null;
+        const persistedCode = localStorage.getItem( LANG_STORAGE_KEY );
+
+        if ( detectedCode && hasOption( detectedCode ) ) {
+
+            langSelect.value = detectedCode;
+
+            if ( langHint ) {
+                langHint.textContent = '↑ Detected from current post';
+                langHint.hidden      = false;
+            }
+
+        } else if ( persistedCode && hasOption( persistedCode ) ) {
+
+            langSelect.value = persistedCode;
+        }
+
+        // Persist every manual change and dismiss the detected hint.
+        langSelect.addEventListener( 'change', () => {
+            localStorage.setItem( LANG_STORAGE_KEY, langSelect.value );
+            if ( langHint ) langHint.hidden = true;
+        } );
+    }
+
     /* ── Open / close helpers ──────────────────────────────────────────────── */
 
     function openPopover( popover, anchorBtn ) {
+
+        // Apply language preference on the very first open.
+        if ( !popover.dataset.langInitialised ) {
+            initLanguageSelect( popover );
+            popover.dataset.langInitialised = '1';
+        }
 
         // Pre-fill with any selected text.
         const selection = window.getSelection ? window.getSelection().toString().trim() : '';
