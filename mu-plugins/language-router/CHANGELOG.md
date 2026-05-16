@@ -5,6 +5,75 @@ Earlier history is preserved in the root `CHANGELOG.md` of the procedural versio
 
 ---
 
+## [1.3.4] - 2026-05-16
+
+### Fixed
+
+- **Substring collision in `fix_post`** — The original `str_replace( $from, $to, $content )` call
+  treated the source URL as a plain substring. A short URL such as `/aprop/recursos/` would silently
+  corrupt the longer sibling `/aprop/recursos/mu-plugins-de-cal-talaia/` by replacing its prefix.
+  The resulting URL started with the target-language prefix, so a Re-scan reported "all clean" while
+  the link was in fact broken. Replaced with `preg_replace_callback` using an exact
+  `href=(["\'])URL\1` pattern, so only the precise href value is touched.
+
+- **Root-relative href not matched during fix** — `extract_internal_links` normalises root-relative
+  hrefs (`/aprop/…`) to absolute for scanning, but `fix_post` only searched for the absolute form.
+  Content saved with root-relative hrefs was therefore left unchanged even after a successful scan.
+  `fix_post` now builds both the absolute and root-relative forms of each search URL.
+
+- **JS false-positive "Fixed" status** — The `doFix` callback passed `resp.success` as the sole
+  signal to the row renderer, so every 200-OK response — including `applied: 0` — showed
+  "✅ Fixed". The callback now receives `(ok, applied)` and shows a distinct "⚠ No changes —
+  re-scan?" message when the server reports zero replacements.
+
+- **Null pointer in `fix_post`** — When `scan_post` returned `[]` (post not found), the code still
+  called `get_post()` and immediately accessed `$post->post_content`, producing a fatal error on
+  any fix attempt for a deleted or invalid post ID. Added an early-return guard.
+
+- **Stale TRID translation cache masking valid translations** — `scan_post` flushed the WordPress
+  post object cache but not the `my_translations` TRID cache. A 1-hour stale entry from
+  `get_translations()` could falsely report `no_translation` even when the Catalan→Italian link was
+  properly configured. `clear_translation_cache()` is now called alongside `clean_post_cache()` at
+  the start of every scan and Re-scan.
+
+- **False-positive links from breadcrumbs and navigation anchors** — The previous slug/path
+  resolution extracted every `<a href="…">` that pointed to an internal URL, including breadcrumb
+  parent links, structural navigation anchors, and widget links. These produced spurious scan results
+  (e.g. `/aprop/recursos/` appearing alongside `/aprop/recursos/mu-plugins-de-cal-talaia/` for the
+  same post). Resolved by switching to data-id-only detection (see Changed below).
+
+### Added
+
+- **Re-scan button** — A 🔄 Re-scan button in the modal action bar lets editors verify fixes
+  immediately without closing and reopening the modal.
+
+- **Flagged bucket** — Any internal link that is demonstrably wrong (does not start with the
+  target-language prefix) but cannot be auto-fixed is now surfaced in the results table with an
+  amber warning row and one of three reason codes:
+  - `unresolved` — the `data-id` points to a deleted or unknown post
+  - `no_translation` — the source post was found but has no TRID-linked translation in the target
+    language
+  - `permalink_error` — the translation post was found but `get_permalink()` returned nothing usable
+
+  Previously these links were silently dropped, causing the scan to report "No broken links found"
+  even when broken links existed.
+
+- **Scanned count in AJAX response** — The scan response now includes a `scanned` field. The
+  "no broken links" status message distinguishes between "0 posts found for this language" (likely
+  missing `_lang` meta on translated posts) and "X posts scanned, all links correct."
+
+### Changed
+
+- **Post ID resolution switched to `data-id` only** — Gutenberg writes `data-id="<post_ID>"` on
+  every link created via the built-in link toolbar. This is the most reliable identifier available —
+  no URL parsing, no slug resolution, no rewrite-rule dependency. `extract_internal_links` now
+  discards any `<a>` tag that does not carry `data-id`. All previous fallback strategies
+  (`get_page_by_path`, leaf-slug lookup, `url_to_postid`) have been removed. Structural links that
+  lack `data-id` (breadcrumbs, navigation menus, manually typed hrefs) are silently skipped,
+  eliminating false positives entirely.
+
+---
+
 ## [1.3.3] - 2026-05-16
 
 ### Added

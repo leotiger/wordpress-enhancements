@@ -2,7 +2,7 @@
 /**
  * Language Routing for WP – Class-based refactor
  * Author: Uli Hake
- * Version: 1.3.3
+ * Version: 1.3.4
  * Requires PHP: 8.0
  *
  * Drop this folder into mu-plugins/ as a replacement for the procedural version.

@@ -1,4 +1,4 @@
-# Language Router for WordPress — Class-based refactor (v1.3.3)
+# Language Router for WordPress — Class-based refactor (v1.3.4)
 
 A drop-in replacement for the procedural Language Router plugin, rewritten as two collaborating classes. All `my_*` wrapper functions are preserved so existing theme code keeps working without changes.
 
@@ -243,11 +243,15 @@ Quick Edit includes a language selector for posts, pages, and navigation items. 
 
 When the post list is filtered by language, a **Fix Links (XX)** button appears in the toolbar. Clicking it opens a modal overlay that:
 
-1. Scans all published posts and pages in that language for internal links that still point to a different language's version of the same page (a common result of importing source content).
-2. Shows a dry-run table — each affected post, each link that would change, from/to path.
-3. Lets editors fix individual posts or all at once with sequential AJAX calls.
+1. Scans all published posts and pages in that language for internal links that still point to a different language version of the same page — a common side-effect of importing source content.
+2. Shows a dry-run table with two categories per affected post:
+   - **Auto-fixable** (red → green path pairs): links where the TRID group has a confirmed translation in the target language. A **Fix** button and **Fix All** action repoint them via sequential AJAX calls.
+   - **Flagged** (amber warning rows): links that are wrong but can't be auto-fixed, with a reason code — `unresolved` (linked post was deleted), `no_translation` (no TRID-linked translation exists yet), or `permalink_error` (translation found but permalink failed).
+3. A **🔄 Re-scan** button lets editors immediately verify the result without reopening the modal.
 
-The fixer uses the TRID group to find the correct language equivalent for every linked post. Links with no known translation are left untouched. The fix updates only `post_content`; language metadata, TRID assignments, and translation timestamps are not affected.
+**How links are detected:** the fixer only inspects `<a>` tags that carry a Gutenberg `data-id` attribute — the post ID that the block editor stamps on every link created via the built-in link toolbar. Structural links without `data-id` (breadcrumbs, navigation anchors, manually typed hrefs) are deliberately ignored to avoid false positives.
+
+The fix is content-only: `post_content` is updated via `wp_update_post` with the save hooks temporarily unhooked, so language metadata, TRID assignments, and translation timestamps are not affected.
 
 ---
 

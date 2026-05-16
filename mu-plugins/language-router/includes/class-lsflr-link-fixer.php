@@ -40,66 +40,94 @@ class LSFLR_Link_Fixer {
 	// =========================================================
 
 	/**
-	 * Return every unique absolute internal URL found in href attributes.
+	 * Return every internal post link found in <a> tags that carries a
+	 * Gutenberg data-id attribute.
 	 *
-	 * Handles:
-	 *  - Absolute internal URLs  (https://example.com/…)
-	 *  - Root-relative URLs      (/some-page/)
+	 * Gutenberg sets data-id="<post_ID>" on every link that was created via the
+	 * built-in link toolbar and points to an internal post or page.  This is the
+	 * most reliable identifier available — no URL parsing, no slug resolution,
+	 * no rewrite-rule dependency.
 	 *
-	 * Fragment-only (#) and protocol-relative (//) links are skipped.
+	 * Links WITHOUT data-id are silently skipped.  This eliminates false
+	 * positives from breadcrumbs, navigation anchors, and other structural links
+	 * that happen to be internal but are not editorial post links.
 	 *
-	 * @return string[] Absolute internal URLs, de-duplicated.
+	 * Each entry:
+	 *   'url' => string  Absolute URL (normalised to canonical home_url() scheme).
+	 *   'id'  => int     Post ID from data-id.
+	 *
+	 * @return array<array{ url: string, id: int }> De-duplicated by post ID.
 	 */
 	private function extract_internal_links( string $content ): array {
-		if ( ! preg_match_all( '/<a\s[^>]*\bhref="([^"#][^"]*)"[^>]*>/i', $content, $matches ) ) {
+		// Capture the full attribute string of every <a …> opening tag.
+		if ( ! preg_match_all( '/<a\s([^>]*)>/i', $content, $tag_matches ) ) {
 			return [];
 		}
 
-		$home  = home_url();    // e.g. https://example.com
-		$links = [];
+		$home     = untrailingslashit( home_url() );
+		$home_alt = $this->alt_scheme( $home );
 
-		foreach ( $matches[1] as $url ) {
-			$url = trim( $url );
+		$links = []; // keyed by post ID to de-duplicate
 
-			if ( str_starts_with( $url, $home ) ) {
-				// Already absolute internal.
-				$links[] = $url;
+		foreach ( $tag_matches[1] as $attrs ) {
+
+			// ── Require data-id — skip anything that doesn't have one ─────────────
+			if ( ! preg_match( '/\bdata-id="(\d+)"/', $attrs, $id_m ) ) {
+				continue;
+			}
+			$post_id = (int) $id_m[1];
+
+			// ── href ──────────────────────────────────────────────────────────────
+			if ( ! preg_match( '/\bhref="([^"#][^"]*)"/', $attrs, $href_m ) ) {
+				continue;
+			}
+			$raw = trim( $href_m[1] );
+			if ( ! $raw ) {
 				continue;
 			}
 
-			// Root-relative but not protocol-relative.
-			if ( $url[0] === '/' && ( strlen( $url ) < 2 || $url[1] !== '/' ) ) {
-				$links[] = $home . $url;
+			// Normalise to absolute canonical URL.
+			if ( str_starts_with( $raw, $home ) ) {
+				$abs_url = $raw;
+			} elseif ( $home_alt !== null && str_starts_with( $raw, $home_alt ) ) {
+				$abs_url = $home . substr( $raw, strlen( $home_alt ) );
+			} elseif ( $raw[0] === '/' && ( strlen( $raw ) < 2 || $raw[1] !== '/' ) ) {
+				$abs_url = $home . $raw;
+			} else {
+				continue; // external or protocol-relative — not an internal post link
 			}
+
+			$links[ $post_id ] = [ 'url' => $abs_url, 'id' => $post_id ];
 		}
 
-		return array_values( array_unique( $links ) );
+		return array_values( $links );
+	}
+
+	/**
+	 * Return the http↔https counterpart of $url, or null if not applicable.
+	 */
+	private function alt_scheme( string $url ): ?string {
+		if ( str_starts_with( $url, 'https://' ) ) {
+			return 'http://' . substr( $url, 8 );
+		}
+		if ( str_starts_with( $url, 'http://' ) ) {
+			return 'https://' . substr( $url, 7 );
+		}
+		return null;
 	}
 
 	// =========================================================
-	// CORE: URL → POST ID
+	// CORE: data-id → validated post ID
 	// =========================================================
 
 	/**
-	 * Resolve an absolute internal URL to its underlying WordPress post ID.
+	 * Validate that the post ID from a Gutenberg data-id attribute still exists.
 	 *
-	 * Any language prefix (/es/, /de/, …) is stripped before the lookup so
-	 * that both source-language URLs (/about/) and already-prefixed URLs
-	 * (/es/about/) resolve to the same underlying post.
+	 * Returns the ID when the post is found, 0 when it has been deleted or the
+	 * ID is otherwise invalid (e.g. content copy-pasted from another site).
 	 */
-	private function resolve_to_post_id( string $url ): int {
-		$home = trailingslashit( home_url() );
-
-		// Strip a recognised language prefix if present.
-		foreach ( $this->router->languages() as $lang ) {
-			$prefix = $home . $lang . '/';
-			if ( str_starts_with( $url, $prefix ) ) {
-				$url = $home . substr( $url, strlen( $prefix ) );
-				break;
-			}
-		}
-
-		return (int) url_to_postid( $url );
+	private function resolve_to_post_id( int $data_id ): int {
+		return ( $data_id && get_post( $data_id ) ) ? $data_id : 0;
 	}
 
 	// =========================================================
@@ -107,24 +135,37 @@ class LSFLR_Link_Fixer {
 	// =========================================================
 
 	/**
-	 * Analyse a single post and return the link replacements available.
+	 * Analyse a single post and return every internal link that does not
+	 * already point to $target_lang.
 	 *
-	 * Only links whose target has a translation in $target_lang — and whose
-	 * current href does not already point to that translation — are returned.
+	 * The first check is intentionally simple: any link whose href does NOT
+	 * start with the target-language prefix is wrong by definition — whether
+	 * it is a no-prefix Catalan source URL, a /fr/ URL, or any other language.
+	 *
+	 * Results are split into two buckets:
+	 *
+	 *   fixes   — links we can auto-correct (TRID translation found).
+	 *   flagged — links that are wrong but couldn't be auto-resolved; shown
+	 *             to the editor for manual review with a reason code.
+	 *
+	 * Reason codes for flagged items:
+	 *   unresolved      – URL could not be mapped to a post ID
+	 *   no_translation  – post found but has no $target_lang translation in TRID
+	 *   permalink_error – target post found but get_permalink returned nothing useful
 	 *
 	 * @return array{
 	 *   post_id: int,
 	 *   title:   string,
-	 *   fixes:   list<array{
-	 *     from:              string,
-	 *     to:                string,
-	 *     linked_post_id:    int,
-	 *     linked_post_title: string,
-	 *     target_post_id:    int
-	 *   }>
+	 *   fixes:   list<array{ from: string, to: string, linked_post_id: int, linked_post_title: string, target_post_id: int }>,
+	 *   flagged: list<array{ url: string, reason: string, linked_post_id?: int, linked_post_title?: string }>
 	 * }
 	 */
 	public function scan_post( int $post_id, string $target_lang ): array {
+		// Always read fresh from the DB so an immediate Re-scan after a fix
+		// doesn't receive stale cached data.
+		clean_post_cache( $post_id );
+		$this->router->clear_translation_cache( $post_id );
+
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return [];
@@ -132,31 +173,58 @@ class LSFLR_Link_Fixer {
 
 		$target_prefix = trailingslashit( home_url() ) . $target_lang . '/';
 		$fixes         = [];
+		$flagged       = [];
 
-		foreach ( $this->extract_internal_links( $post->post_content ) as $url ) {
+		foreach ( $this->extract_internal_links( $post->post_content ) as $link ) {
+			$url = $link['url'];
 
-			// Skip if the href already carries the target-language prefix.
+			// ── Already correct: link already carries the target-language prefix ──
 			if ( str_starts_with( $url, $target_prefix ) ) {
 				continue;
 			}
 
-			$linked_id = $this->resolve_to_post_id( $url );
+			// ── Wrong language — validate the data-id and look up translations ────
+			$linked_id = $this->resolve_to_post_id( $link['id'] );
+
 			if ( ! $linked_id ) {
+				// We can see the link is wrong but can't map it to a post.
+				// Surface it so the editor can fix it manually.
+				$flagged[] = [
+					'url'    => $url,
+					'reason' => 'unresolved',
+				];
 				continue;
 			}
 
 			$translations = $this->router->get_translations( $linked_id );
+
 			if ( empty( $translations[ $target_lang ] ) ) {
-				continue; // No translation exists for this language — leave the link alone.
+				// Post found but has no translation registered for this language.
+				$flagged[] = [
+					'url'               => $url,
+					'reason'            => 'no_translation',
+					'linked_post_id'    => $linked_id,
+					'linked_post_title' => get_the_title( $linked_id ),
+				];
+				continue;
 			}
 
 			$target_id = (int) $translations[ $target_lang ];
+
 			if ( $target_id === $linked_id ) {
-				continue; // The linked post is already the target-language version.
+				// The resolved post IS the target-language version — already correct.
+				continue;
 			}
 
 			$new_url = get_permalink( $target_id );
+
 			if ( ! $new_url || $new_url === $url ) {
+				$flagged[] = [
+					'url'               => $url,
+					'reason'            => 'permalink_error',
+					'linked_post_id'    => $linked_id,
+					'linked_post_title' => get_the_title( $linked_id ),
+				];
 				continue;
 			}
 
@@ -173,6 +241,7 @@ class LSFLR_Link_Fixer {
 			'post_id' => $post_id,
 			'title'   => $post->post_title,
 			'fixes'   => $fixes,
+			'flagged' => $flagged,
 		];
 	}
 
@@ -183,17 +252,62 @@ class LSFLR_Link_Fixer {
 	/**
 	 * Apply all available link fixes to a single post and persist the result.
 	 *
+	 * Uses exact href-attribute matching instead of plain str_replace so that a
+	 * short URL (e.g. /aprop/recursos/) never corrupts a longer sibling URL that
+	 * shares the same prefix (e.g. /aprop/recursos/mu-plugins-de-cal-talaia/).
+	 * Also handles root-relative hrefs that extract_internal_links normalises to
+	 * absolute for scanning purposes.
+	 *
 	 * @return array{ applied: int }
 	 */
 	public function fix_post( int $post_id, string $target_lang ): array {
-		$scan    = $this->scan_post( $post_id, $target_lang );
-		$post    = get_post( $post_id );
+		$scan = $this->scan_post( $post_id, $target_lang );
+
+		// scan_post returns [] (no keys) when the post does not exist.
+		if ( empty( $scan ) || empty( $scan['fixes'] ) ) {
+			return [ 'applied' => 0 ];
+		}
+
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return [ 'applied' => 0 ];
+		}
+
 		$content = $post->post_content;
 		$applied = 0;
 
+		$home = untrailingslashit( home_url() ); // e.g. https://example.com
+
 		foreach ( $scan['fixes'] as $fix ) {
-			$count    = substr_count( $content, $fix['from'] );
-			$content  = str_replace( $fix['from'], $fix['to'], $content );
+			$to_url = $fix['to'];
+			$count  = 0;
+
+			// Build the list of URL forms that may appear literally in the content.
+			// Gutenberg saves absolute hrefs, but older content or copy-paste can
+			// produce root-relative ones — handle both.
+			$search_urls = [ $fix['from'] ];
+
+			if ( str_starts_with( $fix['from'], $home ) ) {
+				// Root-relative counterpart: strip the scheme+host prefix.
+				$search_urls[] = substr( $fix['from'], strlen( $home ) );
+			}
+
+			foreach ( $search_urls as $search_url ) {
+				// Match only the *exact* href value — double OR single quotes.
+				// This prevents a shorter URL being treated as a substring of a
+				// longer sibling URL, which was the root cause of corrupted links.
+				$pattern = '/href=(["\'])' . preg_quote( $search_url, '/' ) . '\\1/i';
+
+				$content = preg_replace_callback(
+					$pattern,
+					static function ( array $m ) use ( $to_url, &$count ): string {
+						$count++;
+						return 'href=' . $m[1] . $to_url . $m[1];
+					},
+					$content
+				);
+			}
+
 			$applied += $count;
 		}
 
@@ -240,10 +354,14 @@ class LSFLR_Link_Fixer {
 			'meta_query'     => [ [ 'key' => '_lang', 'value' => $lang ] ],
 		] );
 
+		$scanned = 0;
 		$results = [];
 		foreach ( $query->posts as $post_id ) {
+			$scanned++;
 			$scan = $this->scan_post( (int) $post_id, $lang );
-			if ( ! empty( $scan['fixes'] ) ) {
+			// Include the post if it has auto-fixable links OR flagged links
+			// that need manual review — surface everything that is wrong.
+			if ( ! empty( $scan['fixes'] ) || ! empty( $scan['flagged'] ) ) {
 				$results[] = $scan;
 			}
 		}
@@ -252,6 +370,7 @@ class LSFLR_Link_Fixer {
 			'lang'    => $lang,
 			'results' => $results,
 			'total'   => count( $results ),
+			'scanned' => $scanned,
 		] );
 	}
 
@@ -340,6 +459,9 @@ class LSFLR_Link_Fixer {
 					<button id="lsflr-fix-all" type="button" class="button button-primary">
 						<?php esc_html_e( 'Fix All' ); ?>
 					</button>
+					<button id="lsflr-recheck" type="button" class="button">
+						🔄 <?php esc_html_e( 'Re-scan' ); ?>
+					</button>
 					<span id="lsflr-fix-progress"></span>
 				</div>
 
@@ -414,6 +536,11 @@ class LSFLR_Link_Fixer {
 		.lsflr-fix-pair .lsflr-from { color: #c0392b; }
 		.lsflr-fix-pair .lsflr-to   { color: #27ae60; }
 
+		/* ---- Flagged (needs manual review) ---- */
+		.lsflr-fix-pair.lsflr-flagged { margin-top: 6px; }
+		.lsflr-flagged .lsflr-flag-url    { color: #b45309; }
+		.lsflr-flagged .lsflr-flag-reason { color: #92400e; font-family: sans-serif; font-size: 11px; }
+
 		/* ---- Actions bar ---- */
 		#lsflr-fixer-actions {
 			display: flex;
@@ -443,12 +570,13 @@ class LSFLR_Link_Fixer {
 		(function ($) {
 			'use strict';
 
-			var overlay   = $('#lsflr-fixer-overlay');
-			var status    = $('#lsflr-fixer-status');
-			var results   = $('#lsflr-fixer-results');
-			var actions   = $('#lsflr-fixer-actions');
-			var fixAllBtn = $('#lsflr-fix-all');
-			var progress  = $('#lsflr-fix-progress');
+			var overlay    = $('#lsflr-fixer-overlay');
+			var status     = $('#lsflr-fixer-status');
+			var results    = $('#lsflr-fixer-results');
+			var actions    = $('#lsflr-fixer-actions');
+			var fixAllBtn  = $('#lsflr-fix-all');
+			var recheckBtn = $('#lsflr-recheck');
+			var progress   = $('#lsflr-fix-progress');
 
 			var scanData = null;   // last scan response
 			var activeLang  = '';
@@ -463,7 +591,7 @@ class LSFLR_Link_Fixer {
 				scanData = null;
 				results.empty();
 				actions.hide();
-				fixAllBtn.prop('disabled', false);
+				fixAllBtn.show().prop('disabled', false);
 				progress.text('');
 
 				status.html('<span class="lsflr-spinner"></span> Scanning posts for broken language links…');
@@ -483,63 +611,126 @@ class LSFLR_Link_Fixer {
 				if (e.key === 'Escape') overlay.hide();
 			});
 
+			// ---- Re-scan button ----
+			recheckBtn.on('click', function () {
+				scanData = null;
+				results.empty();
+				fixAllBtn.prop('disabled', false);
+				progress.text('');
+				status.html('<span class="lsflr-spinner"></span> Re-scanning…');
+				doScan();
+			});
+
 			// ---- Scan ----
 			function doScan() {
 				$.post(ajaxurl, {
-					action : 'lsflr_scan_links',
-					lang   : activeLang,
-					nonce  : activeNonce
+					action   : 'lsflr_scan_links',
+					lang     : activeLang,
+					nonce    : activeNonce,
+					_nocache : Date.now()   // prevent browser from returning a cached response
 				}, function (resp) {
 					if (!resp.success) {
 						status.text('Scan failed: ' + (resp.data || 'unknown error'));
+						actions.show();   // still show Re-scan so the user can retry
 						return;
 					}
 					scanData = resp.data;
 					renderResults(scanData);
 				}).fail(function () {
 					status.text('Scan request failed. Please try again.');
+					actions.show();
 				});
 			}
 
 			// ---- Render scan results ----
 			function renderResults(data) {
 				if (!data.results.length) {
-					status.html('✅ No broken links found for <strong>' + esc(data.lang.toUpperCase()) + '</strong>. All internal links are already correct.');
+					if (!data.scanned) {
+						// No posts were found at all — likely a missing _lang meta
+						status.html(
+							'⚠ No <strong>' + esc(data.lang.toUpperCase()) + '</strong> posts found. '
+							+ 'Make sure all translated posts have their Language meta set to <strong>'
+							+ esc(data.lang.toUpperCase()) + '</strong> in the Language metabox.'
+						);
+					} else {
+						status.html(
+							'✅ No broken links found for <strong>' + esc(data.lang.toUpperCase()) + '</strong>. '
+							+ 'Scanned <strong>' + data.scanned + '</strong> post(s) — all internal links are already correct.'
+						);
+					}
+					actions.show();
+					fixAllBtn.hide();
 					return;
 				}
 
+				var totalFixes   = data.results.reduce(function(n, r){ return n + (r.fixes   ? r.fixes.length   : 0); }, 0);
+				var totalFlagged = data.results.reduce(function(n, r){ return n + (r.flagged ? r.flagged.length : 0); }, 0);
+
+				var statusParts = [];
+				if (totalFixes)   statusParts.push('<strong>' + totalFixes   + '</strong> auto-fixable link(s)');
+				if (totalFlagged) statusParts.push('<strong>' + totalFlagged + '</strong> link(s) needing manual review');
 				status.html(
-					'Found <strong>' + data.total + '</strong> post(s) with links that can be repointed to <strong>'
+					'Found ' + statusParts.join(' and ') + ' across <strong>' + data.total
+					+ '</strong> of <strong>' + data.scanned + '</strong> scanned post(s) for <strong>'
 					+ esc(data.lang.toUpperCase()) + '</strong>.'
 				);
+
+				var reasonLabel = {
+					unresolved      : '⚠ URL could not be mapped to a post — check the link target exists',
+					no_translation  : '⚠ No ' + data.lang.toUpperCase() + ' translation registered (TRID missing)',
+					permalink_error : '⚠ Translation found but permalink could not be generated'
+				};
 
 				var html = '<table>'
 					+ '<thead><tr>'
 					+ '<th>Post</th>'
-					+ '<th>Links to repoint</th>'
+					+ '<th>Links</th>'
 					+ '<th></th>'
 					+ '</tr></thead><tbody>';
 
 				data.results.forEach(function (item) {
-					var pairs = item.fixes.map(function (f) {
+					var fixes   = item.fixes   || [];
+					var flagged = item.flagged || [];
+					var linkCount = fixes.length + flagged.length;
+
+					// Auto-fixable pairs (red → green)
+					var pairs = fixes.map(function (f) {
 						return '<div class="lsflr-fix-pair">'
 							+ '<span class="lsflr-from">↳ ' + esc(stripHost(f.from)) + '</span><br>'
-							+ '<span class="lsflr-to">→ '  + esc(stripHost(f.to))   + '</span>'
+							+ '<span class="lsflr-to">→ '   + esc(stripHost(f.to))   + '</span>'
 							+ '</div>';
 					}).join('');
 
+					// Flagged links (orange — needs manual attention)
+					var flags = flagged.map(function (f) {
+						var label = reasonLabel[f.reason] || ('⚠ ' + esc(f.reason));
+						var detail = f.linked_post_title ? ' <em>(' + esc(f.linked_post_title) + ')</em>' : '';
+						return '<div class="lsflr-fix-pair lsflr-flagged">'
+							+ '<span class="lsflr-flag-url">⚑ ' + esc(stripHost(f.url)) + '</span><br>'
+							+ '<span class="lsflr-flag-reason">' + label + detail + '</span>'
+							+ '</div>';
+					}).join('');
+
+					var fixBtn = fixes.length
+						? '<button type="button" class="button lsflr-fix-single" data-post-id="' + item.post_id + '">Fix</button>'
+						: '';
+
 					html += '<tr id="lsflr-row-' + item.post_id + '">'
 						+ '<td><strong>' + esc(item.title) + '</strong><br>'
-						+ '<small style="color:#888">#' + item.post_id + ' &mdash; ' + item.fixes.length + ' link(s)</small></td>'
-						+ '<td>' + pairs + '</td>'
-						+ '<td style="white-space:nowrap">'
-						+ '<button type="button" class="button lsflr-fix-single" data-post-id="' + item.post_id + '">Fix</button>'
-						+ '</td>'
+						+ '<small style="color:#888">#' + item.post_id + ' &mdash; ' + linkCount + ' link(s)</small></td>'
+						+ '<td>' + pairs + flags + '</td>'
+						+ '<td style="white-space:nowrap">' + fixBtn + '</td>'
 						+ '</tr>';
 				});
 
 				html += '</tbody></table>';
 				results.html(html);
+
+				if (totalFixes) {
+					fixAllBtn.show();
+				} else {
+					fixAllBtn.hide();
+				}
 				actions.show();
 			}
 
@@ -548,10 +739,18 @@ class LSFLR_Link_Fixer {
 				var btn    = $(this);
 				var postId = btn.data('post-id');
 				btn.prop('disabled', true).text('Fixing…');
-				doFix(postId, function (ok) {
+				doFix(postId, function (ok, applied) {
 					var row = $('#lsflr-row-' + postId);
-					if (ok) { row.addClass('lsflr-fixed');  btn.text('✅ Fixed'); }
-					else    { row.addClass('lsflr-failed'); btn.text('❌ Failed').prop('disabled', false); }
+					if (ok && applied > 0) {
+						row.addClass('lsflr-fixed');
+						btn.text('✅ Fixed (' + applied + ')');
+					} else if (ok && applied === 0) {
+						row.addClass('lsflr-failed');
+						btn.text('⚠ No changes — re-scan?').prop('disabled', false);
+					} else {
+						row.addClass('lsflr-failed');
+						btn.text('❌ Failed').prop('disabled', false);
+					}
 				});
 			});
 
@@ -560,26 +759,40 @@ class LSFLR_Link_Fixer {
 				if (!scanData || !scanData.results.length) return;
 				fixAllBtn.prop('disabled', true);
 
-				var queue = scanData.results.slice();
-				var done  = 0;
-				var total = queue.length;
+				// Only queue posts that actually have auto-fixable links.
+				var queue   = scanData.results.filter(function(r){ return r.fixes && r.fixes.length; });
+				var done    = 0;
+				var skipped = 0;
+				var total   = queue.length;
 
 				function next() {
 					if (!queue.length) {
-						progress.text('Done — ' + done + ' of ' + total + ' post(s) fixed.');
+						var msg = 'Done — ' + done + ' of ' + total + ' post(s) fixed.';
+						if (skipped) msg += ' (' + skipped + ' had no replaceable links — re-scan to investigate)';
+						progress.text(msg);
 						return;
 					}
 					var item = queue.shift();
-					progress.html('<span class="lsflr-spinner"></span> Fixing ' + (done + 1) + ' / ' + total + '…');
+					progress.html('<span class="lsflr-spinner"></span> Fixing ' + (done + skipped + 1) + ' / ' + total + '…');
 
 					var rowBtn = $('#lsflr-row-' + item.post_id + ' .lsflr-fix-single');
 					rowBtn.prop('disabled', true).text('Fixing…');
 
-					doFix(item.post_id, function (ok) {
-						done++;
+					doFix(item.post_id, function (ok, applied) {
 						var row = $('#lsflr-row-' + item.post_id);
-						if (ok) { row.addClass('lsflr-fixed');  rowBtn.text('✅ Fixed'); }
-						else    { row.addClass('lsflr-failed'); rowBtn.text('❌ Failed'); }
+						if (ok && applied > 0) {
+							done++;
+							row.addClass('lsflr-fixed');
+							rowBtn.text('✅ Fixed (' + applied + ')');
+						} else if (ok && applied === 0) {
+							skipped++;
+							row.addClass('lsflr-failed');
+							rowBtn.text('⚠ No changes');
+						} else {
+							skipped++;
+							row.addClass('lsflr-failed');
+							rowBtn.text('❌ Failed');
+						}
 						next();
 					});
 				}
@@ -587,7 +800,7 @@ class LSFLR_Link_Fixer {
 				next();
 			});
 
-			// ---- AJAX helper ----
+			// ---- AJAX helper — passes (ok, applied) to callback ----
 			function doFix(postId, cb) {
 				$.post(ajaxurl, {
 					action  : 'lsflr_fix_post',
@@ -595,9 +808,10 @@ class LSFLR_Link_Fixer {
 					lang    : activeLang,
 					nonce   : activeNonce
 				}, function (resp) {
-					cb(resp.success);
+					var applied = (resp.success && resp.data) ? (resp.data.applied || 0) : 0;
+					cb(resp.success, applied);
 				}).fail(function () {
-					cb(false);
+					cb(false, 0);
 				});
 			}
 

@@ -32,7 +32,7 @@ class Language_Router {
 	// CONSTANTS / VERSION
 	// =========================================================
 
-	const ROUTER_VERSION = '1.3.3';
+	const ROUTER_VERSION = '1.3.4';
 
 	// =========================================================
 	// INSTANCE CACHES  (avoids repeated filesystem + filter calls)
