@@ -8,10 +8,7 @@ $mu_plugins = [
     'lightbox-overlay-control/lightbox-overlay-control.php',
 	'svg-icon-block/svg-icon-block.php',
 	'accordion-scroll/accordion-scroll.php',
-	'language-router/language-router.php',
 	'gutenberg-enhancements/gutenberg-enhancements.php',
-    'meta-description/meta-description.php',
-    'wpenhance-ai/wpenhance-ai.php',
 ];
 
 foreach ($mu_plugins as $plugin) {
