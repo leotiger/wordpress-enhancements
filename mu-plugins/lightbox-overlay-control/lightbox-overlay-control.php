@@ -3,7 +3,7 @@
  * Plugin Name: Lightbox Overlay Carousel for Carousel Slider Block (MU Module)
  * Description: Adds overlay carousel for images included in Carousel Slider Block.
  * Author: Uli Hake
- * Version: 1.1.3
+ * Version: 1.1.4
  */
 
 if (!defined('ABSPATH')) exit;
@@ -64,9 +64,12 @@ add_action('wp_footer', function () {
 (function () {
 
 	document.addEventListener('pointerenter', function(e) {
+		const target = e.target instanceof Element
+			? e.target
+			: e.target.parentElement;
 
-		const container = e.target.closest('.wp-lightbox-container');
-
+		const container = target?.closest('.wp-lightbox-container');		
+		
 		if (!container) {
 			return;
 		}
